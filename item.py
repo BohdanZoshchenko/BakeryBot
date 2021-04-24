@@ -1,6 +1,8 @@
-class Category:
+class Item:
     price = None
-    positions =  None
+    name = None
+    description = None
+    
 
     def __init__(self, price, positions=None):
         self.price = price

@@ -25,7 +25,21 @@ class DBHelper:
         #self.connection.close()
         print('success')
 
-    def delete_each_category_from_db(self, price):
+    def update_category_in_db(self, price):
+        pass
+
+    def save_item_to_db(self, item):
+        #price = category.price
+        #ql = """INSERT INTO category VALUES(%s);"""
+        
+        #self.data_cursor.execute(sql, [price])
+        #self.connection.commit()
+
+        #self.data_cursor.close()
+        #self.connection.close()
+        print('success')
+
+    def delete_category_from_db(self, price):
         sql = """DELETE FROM category WHERE price = %s;"""
         
         self.data_cursor.execute(sql, [price])

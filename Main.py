@@ -55,25 +55,26 @@ def is_password_valid(password):
 def add_category(msg = None, callback = None):
     id = get_chat_id(msg, callback)
     parameters.mode_in_admin = "add_category_price"
-    keyboard = simple_keyb(['До керування ботом'])
+    keyboard = simple_keyb(['До меню керування'])
     bot.send_message(chat_id=id, reply_markup=keyboard, text="Ок. Напишіть ціну нової категорії в гривнях (без декору). Просто число.")
 
 def add_position(msg = None, callback = None):
     id = get_chat_id(msg, callback)
-    bot.send_message(chat_id=id, text="Ок. Напишіть назву нової позиції")
+    item_name = msg.text
+    bot.send_message(chat_id=id, text="Чудово! Тепер давайте дамо короткий опис до "+item_name)
 
 def items_menu_admin(msg = None, callback = None):
     id = get_chat_id(msg, callback)
 
     #db.add_item("Something", id)
     #keyboard = keyb([[db.get_items(id)[0], '45']])
-    keyboard = simple_keyb(['Додати цінову категорію', 'До керування ботом'])
+    keyboard = simple_keyb(['Додати цінову категорію', 'До меню керування'])
     bot.send_message(chat_id=id, reply_markup=keyboard, text="Давайте додамо нову цінову категорію або змінимо стару))")
     categories = db.get_each_category_from_db()
     if len(categories) > 0:
         bot.send_message(chat_id=id, reply_markup=keyboard, text='Список доступних категорій:')
     for cat in categories:
-        inline = keyb([['Змінити категорію', 'update_category_'+str(cat[0])]], ['Видалити категорію','delete_category_'+str(cat[0])])
+        inline = keyb([['Змінити категорію', 'update_category_'+str(cat[0])]])#, ['Видалити категорію','delete_category_'+str(cat[0])]])
         bot.send_message(chat_id=id, reply_markup=inline, text=str(cat[0]) + ' грн./кг + ціна за декор')
 
 def items_menu_user(msg = None, callback = None):
@@ -100,23 +101,22 @@ def add_category_position_menu(msg=None, callback=None):
     parameters.mode_in_admin = 'add_category_position'
     #photo = msg.photo[0].file_id
     #parameters.current_category.photo = photo
-    keyboard = simple_keyb(['Пропустити', 'До керування ботом'])
+    keyboard = simple_keyb(['Пропустити', 'До меню керування'])
     bot.send_message(chat_id=id, reply_markup=keyboard, text = 'Клас! А зараз можна додати нові позиції до категорії.')
-
 
 @bot.message_handler(content_types=['photo'])
 def handle_command(message):
     if parameters.admin:
-        print(1)
         if parameters.mode_in_admin == "add_category_photo":
-            print(2)
             add_category_position_menu(message)
 
 @bot.message_handler(content_types=['text'])
 def handle_command(message):
     if parameters.admin:
-        if parameters.mode_in_admin == "add_category_price":
-            if message.text == 'До керування ботом':
+        if parameters.mode_in_admin == "add_category_position":
+            add_position(msg=message)
+        elif parameters.mode_in_admin == "add_category_price":
+            if message.text == 'До меню керування':
                 admin_menu(msg=message)
                 return
             try:
@@ -127,12 +127,11 @@ def handle_command(message):
                 db.save_category_to_db(category=parameters.current_category)
                 parameters.mode_in_admin = "add_category_position"
 
-                keyboard = simple_keyb(['Пропустити', 'До керування ботом'])
-                bot.send_message(chat_id=message.chat.id, reply_markup=keyboard, text = 'Клас! А зараз можна додати нові позиції до категорії.')
+                keyboard = simple_keyb(['Пропустити', 'До меню керування'])
+                bot.send_message(chat_id=message.chat.id, reply_markup=keyboard, text = 'Клас! А зараз можна додати нові позиції до категорії.\nНапишіть назву нової позиції.')
             
                 #bot.send_message(chat_id=message.chat.id, reply_markup=keyboard, text = 'Чудово! Тепер надішліть смачне фото, яке презентуватиме категорію) Втім, цей крок можна зробити пізніше')
             except BaseException as error:
-                print(str(error))
                 if 'duplicate key value violates unique constraint' in str(error):
                     bot.send_message(chat_id=message.chat.id, text = 'А така категорія вже є. Ви можете змінити її.')
                     return
@@ -168,7 +167,7 @@ def handle_command(message):
             items_menu_admin(msg=message)
         elif message.text == "Додати цінову категорію":
             add_category(msg=message)
-        elif message.text == 'До керування ботом':
+        elif message.text == 'До меню керування':
             admin_menu(msg=message)
         #else:
            # bot.send_message(chat_id=message.chat.id, text="Не зрозумів. Давайте спробуємо ще раз))")
@@ -238,7 +237,13 @@ def handle_command(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
-    if 'delete_category_' in call.data:
-        price = int(str(call.data).replace('delete_category_', ''))
-        
+#    pass
+    if 'update_category_' in call.data:
+        price = int(str(call.data).replace('update_category_', ''))
+        add_category_position_menu(callback=call)
+        #db.update_category_in_db(price)
+#    if 'delete_category_' in call.data:
+#        price = int(str(call.data).replace('delete_category_', ''))
+#        db.delete_category_from_db(price)
+
 bot.polling(none_stop=True)
