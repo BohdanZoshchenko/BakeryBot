@@ -6,3 +6,4 @@ admin = False
 mode_in_admin = None
 
 current_category = None
+current_item = None

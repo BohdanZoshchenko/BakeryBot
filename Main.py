@@ -1,3 +1,4 @@
+from item import Item
 from logging import ERROR
 from category import Category
 import telebot
@@ -5,9 +6,11 @@ from telebot import types
 import feedparser
 import parameters
 from dbhelper import DBHelper
+from user import User
 
 bot = telebot.TeleBot(parameters.TOKEN)
 db = DBHelper()
+user = User(bot, db)
 
 def get_chat_id(msg, callback):
     id = None
@@ -17,13 +20,14 @@ def get_chat_id(msg, callback):
         id = callback.message.chat.id
     return id
 
+
 def is_password_valid(password):
     has8symbols = False
     containsDigit = False
     containsUpper = False
     containsLower = False
     noSpaces = True
-    
+
     if len(password) >= 8:
         has8symbols = True
 
@@ -52,48 +56,63 @@ def is_password_valid(password):
         err_result = "OK"
     return err_result
 
-def add_category(msg = None, callback = None):
+
+def add_category(msg=None, callback=None):
     id = get_chat_id(msg, callback)
     parameters.mode_in_admin = "add_category_price"
     keyboard = simple_keyb(['До меню керування'])
-    bot.send_message(chat_id=id, reply_markup=keyboard, text="Ок. Напишіть ціну нової категорії в гривнях (без декору). Просто число.")
+    bot.send_message(chat_id=id, reply_markup=keyboard,
+                     text="Ок. Напишіть ціну нової категорії в гривнях (без декору). Просто число.")
 
-def add_position(msg = None, callback = None):
+
+def add_position(msg=None, callback=None):
     id = get_chat_id(msg, callback)
-    item_name = msg.text
-    bot.send_message(chat_id=id, text="Чудово! Тепер давайте дамо короткий опис до "+item_name)
+    item = Item(price=parameters.current_category.price, name=msg.text)
+    
+    bot.send_message(chat_id=id, text="Чудово! Тепер давайте дамо короткий опис до " + item.name)
+    parameters.mode_in_admin = "add_item_description"
+    parameters.current_item = item
 
-def items_menu_admin(msg = None, callback = None):
+def items_menu_admin(msg=None, callback=None):
     id = get_chat_id(msg, callback)
 
     #db.add_item("Something", id)
     #keyboard = keyb([[db.get_items(id)[0], '45']])
     keyboard = simple_keyb(['Додати цінову категорію', 'До меню керування'])
-    bot.send_message(chat_id=id, reply_markup=keyboard, text="Давайте додамо нову цінову категорію або змінимо стару))")
+    bot.send_message(chat_id=id, reply_markup=keyboard,
+                     text="Давайте додамо нову цінову категорію або змінимо стару))")
     categories = db.get_each_category_from_db()
     if len(categories) > 0:
-        bot.send_message(chat_id=id, reply_markup=keyboard, text='Список доступних категорій:')
+        bot.send_message(chat_id=id, reply_markup=keyboard,
+                         text='Список доступних категорій:')
     for cat in categories:
-        inline = keyb([['Змінити категорію', 'update_category_'+str(cat[0])]])#, ['Видалити категорію','delete_category_'+str(cat[0])]])
-        bot.send_message(chat_id=id, reply_markup=inline, text=str(cat[0]) + ' грн./кг + ціна за декор')
+        # , ['Видалити категорію','delete_category_'+str(cat[0])]])
+        inline = keyb([['Змінити категорію', 'update_category_'+str(cat[0])]])
+        bot.send_message(chat_id=id, reply_markup=inline,
+                         text=str(cat[0]) + ' грн./кг + ціна за декор')
 
-def items_menu_user(msg = None, callback = None):
+
+def items_menu_user(msg=None, callback=None):
     id = get_chat_id(msg, callback)
 
 
-def admin_menu(msg = None, callback = None):
+def admin_menu(msg=None, callback=None):
     id = get_chat_id(msg, callback)
     #keyboard = keyb([['Оновити дані', 'update_data'],['Оновити інфо', 'update_info'],['Змінити пароль', 'update_password'], ['Вийти з цього меню', 'exit_admin']])
-    keyboard = simple_keyb(['Оновити дані','Оновити інфо','Змінити пароль', 'Вийти з керування ботом'])
-    bot.send_message(chat_id=id, reply_markup=keyboard, text="Ласкаво прошу до керування чатботом! Тобто мною.\nСюди має доступ лише людина з паролем.\nЩо бажаєте зробити?")
+    keyboard = simple_keyb(
+        ['Оновити дані', 'Оновити інфо', 'Змінити пароль', 'Вийти з керування ботом'])
+    bot.send_message(chat_id=id, reply_markup=keyboard,
+                     text="Ласкаво прошу до керування чатботом! Тобто мною.\nСюди має доступ лише людина з паролем.\nЩо бажаєте зробити?")
     parameters.admin = True
     parameters.mode_in_admin = None
+
 
 def change_password_menu(msg=None, callback=None):
     id = get_chat_id(msg, callback)
     parameters.mode_in_admin = "change_password"
     kb = simple_keyb(['Ні, не хочу міняти'])
     bot.send_message(chat_id=id, reply_markup=kb, text="Ок, змінюємо пароль. Напишіть мені новий. Він має бути складний - мінімум 8 символів всього, мінімум 1 маленька літера і 1 велика літера, мінімум 1 цифра. Без пробілів.\nПам'ятайте чи зберігайте його в безпеці.")
+
 
 def add_category_position_menu(msg=None, callback=None):
     print(3)
@@ -102,17 +121,34 @@ def add_category_position_menu(msg=None, callback=None):
     #photo = msg.photo[0].file_id
     #parameters.current_category.photo = photo
     keyboard = simple_keyb(['Пропустити', 'До меню керування'])
-    bot.send_message(chat_id=id, reply_markup=keyboard, text = 'Клас! А зараз можна додати нові позиції до категорії.')
+    bot.send_message(chat_id=id, reply_markup=keyboard,
+                     text='Клас! А зараз можна додати нові позиції до категорії.')
 
 @bot.message_handler(content_types=['photo'])
 def handle_command(message):
     if parameters.admin:
-        if parameters.mode_in_admin == "add_category_photo":
-            add_category_position_menu(message)
+        if parameters.mode_in_admin == "add_item_photo":
+            fileID = message.photo[-1].file_id
+            file_info = bot.get_file(fileID)
+            downloaded_file = bot.download_file(file_info.file_path)
+            parameters.current_item.photo = downloaded_file
+            db.save_item_to_db(parameters.current_item)
+            bot.send_message(chat_id=message.chat.id, text='Ок... Ось ваш смаколик!')
+            parameters.mode_in_admin = 'show_new_item'
+            items = db.get_item_from_db(parameters.current_item.price, parameters.current_item.name)
+            bot.send_message(chat_id=message.chat.id, text=items[0][0])
+            bot.send_photo(chat_id=message.chat.id, photo=items[0][2])
+#        if parameters.mode_in_admin == "add_category_photo":
+#            add_category_position_menu(message)
+
 
 @bot.message_handler(content_types=['text'])
 def handle_command(message):
     if parameters.admin:
+        if parameters.mode_in_admin == "add_item_description":
+            parameters.current_item.description = message.text
+            bot.send_message(chat_id=message.chat.id, text='Опис додано:) а тепер завантажте смачне фото цього смаколика!')
+            parameters.mode_in_admin = "add_item_photo"
         if parameters.mode_in_admin == "add_category_position":
             add_position(msg=message)
         elif parameters.mode_in_admin == "add_category_price":
@@ -128,18 +164,22 @@ def handle_command(message):
                 parameters.mode_in_admin = "add_category_position"
 
                 keyboard = simple_keyb(['Пропустити', 'До меню керування'])
-                bot.send_message(chat_id=message.chat.id, reply_markup=keyboard, text = 'Клас! А зараз можна додати нові позиції до категорії.\nНапишіть назву нової позиції.')
-            
+                bot.send_message(chat_id=message.chat.id, reply_markup=keyboard,
+                                 text='Клас! А зараз можна додати нові позиції до категорії.\nНапишіть назву нової позиції.')
+
                 #bot.send_message(chat_id=message.chat.id, reply_markup=keyboard, text = 'Чудово! Тепер надішліть смачне фото, яке презентуватиме категорію) Втім, цей крок можна зробити пізніше')
             except BaseException as error:
                 if 'duplicate key value violates unique constraint' in str(error):
-                    bot.send_message(chat_id=message.chat.id, text = 'А така категорія вже є. Ви можете змінити її.')
+                    bot.send_message(
+                        chat_id=message.chat.id, text='А така категорія вже є. Ви можете змінити її.')
                     return
                 elif 'invalid literal for int()' in str(error):
-                    bot.send_message(chat_id=message.chat.id, text = 'Будь ласка, введіть ціну у гривнях (без декору), і без копійок:). Просто число.')
+                    bot.send_message(
+                        chat_id=message.chat.id, text='Будь ласка, введіть ціну у гривнях (без декору), і без копійок:). Просто число.')
                     return
                 else:
-                    bot.send_message(chat_id=message.chat.id, text = 'Дивно, якась невідома науці помилка... Можете спробувати ще або звернутися до розробника.')
+                    bot.send_message(
+                        chat_id=message.chat.id, text='Дивно, якась невідома науці помилка... Можете спробувати ще або звернутися до розробника.')
                     return
         elif parameters.mode_in_admin == "change_password":
             if message.text == 'Ні, не хочу міняти':
@@ -151,35 +191,41 @@ def handle_command(message):
             if result == "OK":
                 parameters.admin_password = message.text
                 parameters.mode_in_admin = None
-                bot.send_message(chat_id=message.chat.id, text="Пароль змінено!")
+                bot.send_message(chat_id=message.chat.id,
+                                 text="Пароль змінено!")
                 admin_menu(msg=message)
             else:
                 bot.send_message(chat_id=message.chat.id, text=result)
                 change_password_menu(msg=message)
         elif message.text == 'Вийти з керування ботом':
-            bot.send_message(chat_id=message.chat.id, text="Ок, повертаюся в звичайний режим)")
+            bot.send_message(chat_id=message.chat.id,
+                             text="Ок, повертаюся в звичайний режим)")
             parameters.admin = False
-            bot.send_message(chat_id=message.chat.id, text="Бажаєте замовити смачненьке?")
-            bot.send_message(chat_id=message.chat.id, reply_markup=kb_450, text="450 грн./кг")
+            bot.send_message(chat_id=message.chat.id,
+                             text="Бажаєте замовити смачненьке?")
+            bot.send_message(chat_id=message.chat.id,
+                             reply_markup=kb_450, text="450 грн./кг")
         elif message.text == 'Змінити пароль':
-            change_password_menu(msg=message) 
+            change_password_menu(msg=message)
         elif message.text == "Оновити дані":
             items_menu_admin(msg=message)
         elif message.text == "Додати цінову категорію":
             add_category(msg=message)
         elif message.text == 'До меню керування':
             admin_menu(msg=message)
-        #else:
+        # else:
            # bot.send_message(chat_id=message.chat.id, text="Не зрозумів. Давайте спробуємо ще раз))")
            # admin_menu(msg=message)
     elif message.text == parameters.admin_password:
         admin_menu(msg=message)
+
 
 def keyb(items):
     markup = types.InlineKeyboardMarkup()
     for i in items:
         markup.add(types.InlineKeyboardButton(text=i[0], callback_data=i[1]))
     return markup
+
 
 def simple_keyb(items):
     markup = types.ReplyKeyboardMarkup()
@@ -188,7 +234,10 @@ def simple_keyb(items):
     markup.resize_keyboard = True
     return markup
 
+
 FEED_URL = 'https://widget.stagram.com/rss/n/mari_ko_bakeryclub'
+
+
 def feed_parser():
     NewsFeed = {'Inst': 'https://widget.stagram.com/rss/n/mari_ko_bakeryclub'}
     message = dict()
@@ -198,18 +247,17 @@ def feed_parser():
     return message
 
 
-
-
 i450 = [
-    ["Ванільно-ягідний", '1'], 
-    ["Ягідно-муссовий", '2'], 
-    ["Шоколадно-трюфельний", '3'], 
+    ["Ванільно-ягідний", '1'],
+    ["Ягідно-муссовий", '2'],
+    ["Шоколадно-трюфельний", '3'],
     ["➡️ 500 грн./кг", '4']
 ]
 
 
 i500 = [
-    'Пряна вишня', 'Горіховий', 'Червоний оксамит', 'Снікерс', ['⬅️ 450 грн./кг', '➡️ 550 грн./кг'] 
+    'Пряна вишня', 'Горіховий', 'Червоний оксамит', 'Снікерс', [
+        '⬅️ 450 грн./кг', '➡️ 550 грн./кг']
 ]
 
 
@@ -218,32 +266,37 @@ kb_450 = keyb(items=i450)
 #kb_500 = keyb(items=i500)
 
 # handle commands, /start
-@bot.message_handler(commands=['start', 'help'])
-def handle_command(message):
-    bot.send_message(chat_id=message.chat.id, reply_markup=kb_450, text="450 грн./кг")
+
+
+#@bot.message_handler(commands=['start', 'help'])
+#def handle_command(message):
+#    bot.send_message(chat_id=message.chat.id,
+ #                    reply_markup=kb_450, text="450 грн./кг")
     #bot.send_message(message.chat.id, text="Привіт, я бот пекарні Марії Чернієнко! Чого бажаєте?😃😃", reply_markup=markup)
-    
+
 # handle all messages, echo response back to users
-#@bot.message_handler(func=lambda message: True)
-#def handle_all_message(message):
+# @bot.message_handler(func=lambda message: True)
+# def handle_all_message(message):
 #	bot.reply_to(message, message.text)
 
-#@bot.message_handler(commands=['read_rss'])
-#def read_rss(message):
+# @bot.message_handler(commands=['read_rss'])
+# def read_rss(message):
 #    post = feed_parser()
 #    bot.send_message(message.chat.id, 'Новая информация на выбранных площадках:')
 #   for key in post.keys():
 #        bot.send_message(message.chat.id, key + '\n' + post[key])
 
+
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
-#    pass
+    #    pass
     if 'update_category_' in call.data:
         price = int(str(call.data).replace('update_category_', ''))
         add_category_position_menu(callback=call)
-        #db.update_category_in_db(price)
+        # db.update_category_in_db(price)
 #    if 'delete_category_' in call.data:
 #        price = int(str(call.data).replace('delete_category_', ''))
 #        db.delete_category_from_db(price)
+
 
 bot.polling(none_stop=True)

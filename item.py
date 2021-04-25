@@ -2,8 +2,10 @@ class Item:
     price = None
     name = None
     description = None
-    
+    photo = None
 
-    def __init__(self, price, positions=None):
+    def __init__(self, price = None, name = None, description = None, photo = None):
         self.price = price
-        self.positions = positions
+        self.name = name
+        self.description = description
+        self.photo = photo

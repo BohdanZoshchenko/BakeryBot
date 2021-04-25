@@ -9,8 +9,8 @@ class DBHelper:
         self.data_cursor = self.connection.cursor()
 
         self.data_cursor.execute("CREATE TABLE IF NOT EXISTS category (price integer NOT NULL DEFAULT '450', PRIMARY KEY (price))")
-
-        self.data_cursor.execute("CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea, price integer NOT NULL DEFAULT '450', PRIMARY KEY (name))")
+        
+        self.data_cursor.execute("CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, price integer NOT NULL DEFAULT '450')")
         
         self.connection.commit()
 
@@ -29,15 +29,12 @@ class DBHelper:
         pass
 
     def save_item_to_db(self, item):
-        #price = category.price
-        #ql = """INSERT INTO category VALUES(%s);"""
+        sql = """INSERT INTO item VALUES(%s,%s,%s,%s);"""
         
-        #self.data_cursor.execute(sql, [price])
-        #self.connection.commit()
+        self.data_cursor.execute(sql, [item.name, item.description, item.photo, item.price])
+        self.connection.commit()
 
-        #self.data_cursor.close()
-        #self.connection.close()
-        print('success')
+        print('Item added to DB)))!')
 
     def delete_category_from_db(self, price):
         sql = """DELETE FROM category WHERE price = %s;"""
@@ -48,6 +45,15 @@ class DBHelper:
     def get_each_category_from_db(self):
         sql = """SELECT * FROM category"""
         self.data_cursor.execute(sql, [])
+        rows = []
+        for row in self.data_cursor:
+            rows.append(row)
+        self.connection.commit()
+        return rows
+
+    def get_item_from_db(self, price, name):
+        sql = """SELECT * FROM item WHERE price = %s AND name = %s"""
+        self.data_cursor.execute(sql, [price, name])
         rows = []
         for row in self.data_cursor:
             rows.append(row)
