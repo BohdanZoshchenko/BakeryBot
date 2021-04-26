@@ -1,7 +1,8 @@
 from logging import ERROR
 from category import Category
-import telebot
+
 from telebot import types
+import telebot
 import feedparser
 import parameters
 from dbhelper import DBHelper
