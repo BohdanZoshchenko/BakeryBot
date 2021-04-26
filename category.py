@@ -1,4 +1,3 @@
-from PIL import Image
 class Category:
     price = None
     positions =  None
