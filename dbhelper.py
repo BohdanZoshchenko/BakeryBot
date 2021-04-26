@@ -19,8 +19,8 @@ class DBHelper:
         self.data_cursor.execute("CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea, price integer NOT NULL DEFAULT '450', PRIMARY KEY (name))")
         
         self.connection.commit()
-        self.data_cursor.close()
-        self.connection.close()
+        #self.data_cursor.close()
+        #self.connection.close()
 
     def save_category_to_db(self, category):
         price = category.price
