@@ -1,10 +1,16 @@
+import os
+import psycopg2
+
 from psycopg2 import connect, extensions, sql
 class DBHelper:
     data_cursor = None
     connection = None
 
     def __init__(self):
-        self.connection = connect(dbname = "python_test", user = "objectrocket", host = "localhost",password = "mypass")
+        DATABASE_URL = os.environ['DATABASE_URL']
+
+        self.connection = psycopg2.connect('https://bakerybotmariko.herokuapp.com/db', sslmode='require')
+
 
         self.data_cursor = self.connection.cursor()
 
