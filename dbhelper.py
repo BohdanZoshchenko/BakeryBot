@@ -7,9 +7,9 @@ class DBHelper:
     connection = None
 
     def __init__(self):
-        DATABASE_URL = os.environ['DATABASE_URL']
+        DATABASE_URL = os.environ['https://bakerybotmariko.herokuapp.com/db']
 
-        self.connection = psycopg2.connect('https://bakerybotmariko.herokuapp.com/db', sslmode='require')
+        self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
 
 
         self.data_cursor = self.connection.cursor()
