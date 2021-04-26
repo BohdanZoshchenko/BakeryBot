@@ -1,1 +1,1 @@
-bot: python Main.py $PORT
+bot: gunicorn Main.py:app $PORT
