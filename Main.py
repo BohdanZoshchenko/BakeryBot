@@ -66,13 +66,13 @@ def make_order(callback):
     client = callback.from_user
     print(client.id)
     orders_control.orders[client.id] = [item_name, None]
-    bot.send_message(chat_id=callback.message.chat.id, text="Ок. Яку вагу бажаєте (від 2 кг)?. Наприклад, 3.25")
+    bot.send_message(chat_id=callback.message.chat.id, text="Ок. Яку вагу бажаєте (від 2 кг)? Наприклад, 3.25")
 
     parameters.mode = "type_kg"
    
 def type_kg(message):
     def exc():
-        bot.send_message(chat_id=message.chat.id, text="Не розумію:(.\nСкільки кілограмів? Від 2-ох кг. Наприклад, 3.25")
+        bot.send_message(chat_id=message.chat.id, text="Не розумію:(.\nОк. Яку вагу бажаєте (від 2 кг)? Наприклад, 3.25")
     kg = 2
     try:
         txt = message.text
