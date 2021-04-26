@@ -15,8 +15,5 @@ dbus-python==1.2.16
 feedparser==6.0.2
 psycopg2-binary==2.8.6
 pyTelegramBotAPI==3.7.7
-python-apt==2.0.0+ubuntu0.20.4.4
-python-dateutil==2.7.3
-python-debian===0.1.36ubuntu1
 python-telegram-bot==13.4.1
 virtualenv==20.4.4
