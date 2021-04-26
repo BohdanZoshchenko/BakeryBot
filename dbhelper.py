@@ -13,7 +13,15 @@ class DBHelper:
         #self.data_cursor.execute("DROP TABLE category")
         #self.data_cursor.execute("DROP TABLE item")
         #self.data_cursor.execute("DROP TABLE client_order")
-
+        
+        
+        
+        #self.data_cursor.execute("UPDATE item SET name = 'Торт Наполеон' WHERE name = 'Наполеон';")
+        #self.data_cursor.execute("UPDATE item SET name = 'Торт Ванільно-ягідний' WHERE name = 'Ванільно-ягідний';")
+        #self.data_cursor.execute("UPDATE item SET name = 'Торт Прага' WHERE name = 'Прага';")
+        
+        
+        
         self.data_cursor.execute("CREATE TABLE IF NOT EXISTS category (price integer NOT NULL DEFAULT '450', PRIMARY KEY (price))")
         
         self.data_cursor.execute("CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, price integer NOT NULL DEFAULT '450')")

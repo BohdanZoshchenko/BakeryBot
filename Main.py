@@ -28,7 +28,7 @@ def start(message):
 
 def start_msg(message = None, call=None):
     id = get_chat_id(msg=message, callback=call)
-    markup = keyb([ ["Замовити смаколики", "show_list"] , ["Акції та новини", "news"] ])
+    markup = keyb([ ["Замовити смаколики", "show_list"] , ["Інфо", "info"] ])
     bot.send_message(id, text="Привіт, я бот кондитерської Mari_Ko BAKERY CLUB! Чого бажаєте?", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -51,8 +51,8 @@ def get_call(call):
         #elif "user_items_page_" in call.data:
          #   number = int(call.data.replace("user_items_page_", ''))
           #  show_item(callback=call, category_number=number)
-        elif call.data == "news":
-            show_news()
+        elif call.data == "info":
+            show_info(call)
     else:
         if 'update_category_' in call.data:
             price = int(str(call.data).replace('update_category_', ''))
@@ -66,13 +66,13 @@ def make_order(callback):
     client = callback.from_user
     print(client.id)
     orders_control.orders[client.id] = [item_name, None]
-    bot.send_message(chat_id=callback.message.chat.id, text="Скільки кілограмів? Від 2ох")
+    bot.send_message(chat_id=callback.message.chat.id, text="Ок. Яку вагу бажаєте (від 2 кг)?. Наприклад, 3.25")
 
     parameters.mode = "type_kg"
    
 def type_kg(message):
     def exc():
-        bot.send_message(chat_id=message.chat.id, text="Не розумію:(.\nСкільки кілограмів? Від 2ох")
+        bot.send_message(chat_id=message.chat.id, text="Не розумію:(.\nСкільки кілограмів? Від 2-ох кг. Наприклад, 3.25")
     kg = 2
     try:
         txt = message.text
@@ -91,6 +91,7 @@ def type_kg(message):
             p = item_from_db[3]
             
             orders_control.orders[client.id][0] += "\n" + str(kg) + " кг * " + str(p) + " = " + str(kg*p) + " ГРН"
+            
             bot.send_message(chat_id=message.chat.id, text=orders_control.orders[client.id][0]+"\nЧудово. Тепер напишіть побажання щодо смаколика. Наприклад, про начинку і декор або дату бронювання")
             
             parameters.mode = "type_wishes"
@@ -137,7 +138,8 @@ def show_list(callback):
     buttons = []
     for item in items:
         buttons.append( [item[0]+" "+str(item[3])+" ГРН/КГ", "show_item_" + item[0]] )
-
+    
+    buttons.append(["Інфо", "info"])
     markup = keyb(buttons)
     bot.send_message(chat_id=callback.message.chat.id, text="Обирайте:)", reply_markup=markup)
 
@@ -155,18 +157,21 @@ def show_item(callback, item_name):
     text += str(item[0])+"\n" #name
     text += str(item[1])+"\n" #description
     text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо") + "\n"#price
+    text += "Унікальний декор за вашими побажаннями" + "\n"
     text += "Мінімальна вага до замовлення 2 кг"
     #markup = None
     #if len(categories)>category_number+1:
-    markup = keyb([ ["Замовити", "order_this_" + item[0]], ["Вибрати щось інше", "show_list"] ])
+    markup = keyb([ ["Замовити", "order_this_" + item[0]], ["Вибрати щось інше", "show_list"], ["Інфо", "info"] ])
         #markup=keyb([  ["➡️ далі: від " + str(categories[category_number+1][0]) + " грн./кг", "user_items_page_" + str(category_number+1) ]  ])
         #bot.send_message(chat_id=callback.message.chat.id, text=item[0]) #name
         #bot.send_message(chat_id=callback.message.chat.id, text=item[1]) #description
     bot.send_photo(chat_id=callback.message.chat.id, photo=item[2], caption=text, reply_markup=markup) #photo
         #bot.send_message(chat_id=callback.message.chat.id, text="Ціна: " + str(item[3]) + " грн./кг + за декор окремо.", reply_markup=markup) #price
 
-def show_news():
-    pass
+def show_info(call):
+    info = 'З додаткових питань, пишіть кондитерці Марії @MariaYav'
+    markup = keyb([ ['Замовити смаколики', "show_list"] ])
+    bot.send_message(chat_id=call.message.chat.id, text=info, reply_markup=markup)
 
 ####***ADMIN***####
 
@@ -374,9 +379,8 @@ def handle_command(message):
             bot.send_message(chat_id=message.chat.id,
                              text="Ок, повертаюся в звичайний режим)")
             parameters.admin = False
-            markup = keyb([  ["Замовити смаколики", "show_list"] , ["Акції та новини", "news"] ])
-            bot.send_message(message.chat.id, text="Привіт, я бот кондитерської Mari_Ko BAKERY CLUB! Чого бажаєте?", reply_markup=markup)
-
+            m = message
+            start_msg(message=m)
         elif message.text == 'Змінити пароль':
             change_password_menu(msg=message)
         elif message.text == "Оновити дані":
