@@ -1,4 +1,6 @@
 from psycopg2 import connect, extensions, sql
+import orders_control
+
 class DBHelper:
     data_cursor = None
     connection = None
@@ -8,10 +10,25 @@ class DBHelper:
 
         self.data_cursor = self.connection.cursor()
 
+        #self.data_cursor.execute("DROP TABLE category")
+        #self.data_cursor.execute("DROP TABLE item")
+        #self.data_cursor.execute("DROP TABLE client_order")
+
         self.data_cursor.execute("CREATE TABLE IF NOT EXISTS category (price integer NOT NULL DEFAULT '450', PRIMARY KEY (price))")
         
         self.data_cursor.execute("CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, price integer NOT NULL DEFAULT '450')")
         
+
+        self.data_cursor.execute("CREATE TABLE IF NOT EXISTS client_order (client_id integer NOT NULL DEFAULT '450', description varchar NOT NULL, photo bytea)")
+
+        self.connection.commit()
+
+    def add_order(self, client_id):
+        sql = """INSERT INTO client_order VALUES(%s,%s,%s);"""
+
+        print(orders_control.orders[client_id][0])
+        self.data_cursor.execute(sql, [client_id, orders_control.orders[client_id][0], orders_control.orders[client_id][1]])
+        print("order added")
         self.connection.commit()
 
     def save_category_to_db(self, category):
@@ -43,13 +60,50 @@ class DBHelper:
         self.connection.commit()
 
     def get_each_category_from_db(self):
-        sql = """SELECT * FROM category"""
+        sql = """SELECT * FROM category ORDER BY price"""
         self.data_cursor.execute(sql, [])
         rows = []
         for row in self.data_cursor:
             rows.append(row)
         self.connection.commit()
         return rows
+
+    def get_each_item_from_db(self):
+        sql = """SELECT * FROM item ORDER BY price"""
+        self.data_cursor.execute(sql, [])
+        rows = []
+        for row in self.data_cursor:
+            rows.append(row)
+        self.connection.commit()
+        return rows
+
+    def get_items_by_price_from_db(self, price):
+        sql = """SELECT * FROM item WHERE price = %s"""
+        self.data_cursor.execute(sql, [price])
+        rows = []
+        for row in self.data_cursor:
+            rows.append(row)
+        self.connection.commit()
+        return rows
+
+    def get_category_by_price_from_db(self, price):
+        sql = """SELECT * FROM category WHERE price = %s"""
+        self.data_cursor.execute(sql, [price])
+        rows = []
+        for row in self.data_cursor:
+            rows.append(row)
+        self.connection.commit()
+        return rows[0]
+
+    def get_item_by_name_from_db(self, name):
+        sql = """SELECT * FROM item WHERE name = %s"""
+        self.data_cursor.execute(sql, [name])
+        rows = []
+        for row in self.data_cursor:
+            rows.append(row)
+        self.connection.commit()
+        return rows[0]
+
 
     def get_item_from_db(self, price, name):
         sql = """SELECT * FROM item WHERE price = %s AND name = %s"""

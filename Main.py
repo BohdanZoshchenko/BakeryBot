@@ -1,3 +1,5 @@
+# TODO   розділити торти капкейки(мін замовлення 6 штук) тощо, заборонити додавати товар з одною назвою, не давати базі ламатися
+
 from item import Item
 from logging import ERROR
 from category import Category
@@ -5,12 +7,168 @@ import telebot
 from telebot import types
 import feedparser
 import parameters
+import orders_control
 from dbhelper import DBHelper
-from user import User
+
+
+
 
 bot = telebot.TeleBot(parameters.TOKEN)
 db = DBHelper()
-user = User(bot, db)
+
+
+
+###******USER***###
+
+@bot.message_handler(commands=['start', 'help'])
+def start(message):
+    if not parameters.admin:
+        m = message
+        start_msg(message=m) 
+
+def start_msg(message = None, call=None):
+    id = get_chat_id(msg=message, callback=call)
+    markup = keyb([ ["Замовити смаколики", "show_list"] , ["Акції та новини", "news"] ])
+    bot.send_message(id, text="Привіт, я бот кондитерської Mari_Ko BAKERY CLUB! Чого бажаєте?", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: True)
+def get_call(call):
+    if not parameters.admin:
+        if call.data == "skip_decor_photo":
+            decor_photo(callback=call)
+        #if call.data == "order_begin":
+        #    show_item(callback=call)
+        elif call.data == "show_list":
+            show_list(callback=call)
+        elif "show_item_" in call.data:
+            name = call.data.replace("show_item_","")
+            show_item(callback=call, item_name=name)
+        elif "order_this_" in call.data:
+            make_order(call)
+        elif call.data == 'start':
+            c = call
+            start_msg(call=c)
+        #elif "user_items_page_" in call.data:
+         #   number = int(call.data.replace("user_items_page_", ''))
+          #  show_item(callback=call, category_number=number)
+        elif call.data == "news":
+            show_news()
+    else:
+        if 'update_category_' in call.data:
+            price = int(str(call.data).replace('update_category_', ''))
+            parameters.category_from_db = db.get_category_by_price_from_db(price)
+
+            add_category_position_menu(callback=call)
+
+def make_order(callback):
+    print("ORDER")
+    item_name = callback.data.replace("order_this_", "")
+    client = callback.from_user
+    print(client.id)
+    orders_control.orders[client.id] = [item_name, None]
+    bot.send_message(chat_id=callback.message.chat.id, text="Скільки кілограмів? Від 2ох")
+
+    parameters.mode = "type_kg"
+   
+def type_kg(message):
+    def exc():
+        bot.send_message(chat_id=message.chat.id, text="Не розумію:(.\nСкільки кілограмів? Від 2ох")
+    kg = 2
+    try:
+        txt = message.text
+        txt = txt.replace(",",".")
+        kg = round(abs(float(txt)), 3)
+        print(kg)
+        if (kg >= 2 and kg <= 100):
+            client = message.from_user
+            
+            #print(client.id)
+            #print("minus first")
+            item_name = orders_control.orders[client.id][0]
+            #print("zero")
+            item_from_db = db.get_item_by_name_from_db(item_name)
+           
+            p = item_from_db[3]
+            
+            orders_control.orders[client.id][0] += "\n" + str(kg) + " кг * " + str(p) + " = " + str(kg*p) + " ГРН"
+            bot.send_message(chat_id=message.chat.id, text=orders_control.orders[client.id][0]+"\nЧудово. Тепер напишіть побажання щодо смаколика. Наприклад, про начинку і декор або дату бронювання")
+            
+            parameters.mode = "type_wishes"
+        else:
+            print("else")
+            exc()
+    except:
+        exc()
+
+def wishes_filling_decor(message):
+    markup = keyb([["Пропустити", 'skip_decor_photo']])
+    client = message.from_user
+
+    orders_control.orders[client.id][0] += "\n" + "Побажання щодо декору:\n" + message.text
+    bot.send_message(chat_id=message.chat.id, reply_markup=markup, text=orders_control.orders[client.id][0]+"\nНасамкінець, можете надіслати 1 зображення, за яким можна зробити декор. А можете пропустити цей крок.")
+    
+    parameters.mode = "decor_photo"
+
+def decor_photo(callback = None, message = None):
+    if not parameters.mode == "decor_photo":
+        return
+    id = get_chat_id(message, callback)
+    client = None
+    t = ""
+    if message != None:
+        client = message.from_user
+        fileID = message.photo[-1].file_id
+
+        file_info = bot.get_file(fileID)
+        downloaded_file = bot.download_file(file_info.file_path)
+        orders_control.orders[client.id][1] = downloaded_file
+        t = "Прийнято 1 зображення.\n"
+    elif callback != None:
+        client = callback.from_user
+
+    db.add_order(client.id)
+    parameters.mode = None
+    markup=keyb([ ['Продовжити', 'start'] ])
+
+    bot.send_message(chat_id=id, reply_markup=markup, text=t+orders_control.orders[client.id][0]+"\nЗамовлення прийнято. Тепер почекайте, доки з вами зв'яжеться людина для уточнення деталей")
+
+def show_list(callback):
+    items = db.get_each_item_from_db()
+    buttons = []
+    for item in items:
+        buttons.append( [item[0]+" "+str(item[3])+" ГРН/КГ", "show_item_" + item[0]] )
+
+    markup = keyb(buttons)
+    bot.send_message(chat_id=callback.message.chat.id, text="Обирайте:)", reply_markup=markup)
+
+def show_item(callback, item_name):
+    print("ok")
+    item = db.get_item_by_name_from_db(name=item_name)
+    #categories = db.get_each_category_from_db()
+
+    #curr_category = categories[category_number]
+    #price = curr_category[0]
+    #items = db.get_items_by_price_from_db(price)
+    #item = items[item_number]
+
+    text = ""
+    text += str(item[0])+"\n" #name
+    text += str(item[1])+"\n" #description
+    text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо") + "\n"#price
+    text += "Мінімальна вага до замовлення 2 кг"
+    #markup = None
+    #if len(categories)>category_number+1:
+    markup = keyb([ ["Замовити", "order_this_" + item[0]], ["Вибрати щось інше", "show_list"] ])
+        #markup=keyb([  ["➡️ далі: від " + str(categories[category_number+1][0]) + " грн./кг", "user_items_page_" + str(category_number+1) ]  ])
+        #bot.send_message(chat_id=callback.message.chat.id, text=item[0]) #name
+        #bot.send_message(chat_id=callback.message.chat.id, text=item[1]) #description
+    bot.send_photo(chat_id=callback.message.chat.id, photo=item[2], caption=text, reply_markup=markup) #photo
+        #bot.send_message(chat_id=callback.message.chat.id, text="Ціна: " + str(item[3]) + " грн./кг + за декор окремо.", reply_markup=markup) #price
+
+def show_news():
+    pass
+
+####***ADMIN***####
 
 def get_chat_id(msg, callback):
     id = None
@@ -59,7 +217,7 @@ def is_password_valid(password):
 
 def add_category(msg=None, callback=None):
     id = get_chat_id(msg, callback)
-    parameters.mode_in_admin = "add_category_price"
+    parameters.mode = "add_category_price"
     keyboard = simple_keyb(['До меню керування'])
     bot.send_message(chat_id=id, reply_markup=keyboard,
                      text="Ок. Напишіть ціну нової категорії в гривнях (без декору). Просто число.")
@@ -67,10 +225,15 @@ def add_category(msg=None, callback=None):
 
 def add_position(msg=None, callback=None):
     id = get_chat_id(msg, callback)
-    item = Item(price=parameters.current_category.price, name=msg.text)
+    p = None
+    if parameters.current_category == None:
+        p = parameters.category_from_db[0]
+    else:
+        p = parameters.current_category.price
+    item = Item(price=p, name=msg.text)
     
     bot.send_message(chat_id=id, text="Чудово! Тепер давайте дамо короткий опис до " + item.name)
-    parameters.mode_in_admin = "add_item_description"
+    parameters.mode = "add_item_description"
     parameters.current_item = item
 
 def items_menu_admin(msg=None, callback=None):
@@ -101,15 +264,16 @@ def admin_menu(msg=None, callback=None):
     #keyboard = keyb([['Оновити дані', 'update_data'],['Оновити інфо', 'update_info'],['Змінити пароль', 'update_password'], ['Вийти з цього меню', 'exit_admin']])
     keyboard = simple_keyb(
         ['Оновити дані', 'Оновити інфо', 'Змінити пароль', 'Вийти з керування ботом'])
+    
     bot.send_message(chat_id=id, reply_markup=keyboard,
                      text="Ласкаво прошу до керування чатботом! Тобто мною.\nСюди має доступ лише людина з паролем.\nЩо бажаєте зробити?")
     parameters.admin = True
-    parameters.mode_in_admin = None
+    parameters.mode = None
 
 
 def change_password_menu(msg=None, callback=None):
     id = get_chat_id(msg, callback)
-    parameters.mode_in_admin = "change_password"
+    parameters.mode = "change_password"
     kb = simple_keyb(['Ні, не хочу міняти'])
     bot.send_message(chat_id=id, reply_markup=kb, text="Ок, змінюємо пароль. Напишіть мені новий. Він має бути складний - мінімум 8 символів всього, мінімум 1 маленька літера і 1 велика літера, мінімум 1 цифра. Без пробілів.\nПам'ятайте чи зберігайте його в безпеці.")
 
@@ -117,51 +281,60 @@ def change_password_menu(msg=None, callback=None):
 def add_category_position_menu(msg=None, callback=None):
     print(3)
     id = get_chat_id(msg, callback)
-    parameters.mode_in_admin = 'add_category_position'
+    parameters.mode = 'add_category_position'
     #photo = msg.photo[0].file_id
     #parameters.current_category.photo = photo
     keyboard = simple_keyb(['Пропустити', 'До меню керування'])
     bot.send_message(chat_id=id, reply_markup=keyboard,
-                     text='Клас! А зараз можна додати нові позиції до категорії.')
+                     text='Напишіть назву нової позиції.')
 
 @bot.message_handler(content_types=['photo'])
 def handle_command(message):
     if parameters.admin:
-        if parameters.mode_in_admin == "add_item_photo":
+        if parameters.mode == "add_item_photo":
             fileID = message.photo[-1].file_id
             file_info = bot.get_file(fileID)
             downloaded_file = bot.download_file(file_info.file_path)
             parameters.current_item.photo = downloaded_file
             db.save_item_to_db(parameters.current_item)
             bot.send_message(chat_id=message.chat.id, text='Ок... Ось ваш смаколик!')
-            parameters.mode_in_admin = 'show_new_item'
+            parameters.mode = 'show_new_item'
             items = db.get_item_from_db(parameters.current_item.price, parameters.current_item.name)
             bot.send_message(chat_id=message.chat.id, text=items[0][0])
             bot.send_photo(chat_id=message.chat.id, photo=items[0][2])
-#        if parameters.mode_in_admin == "add_category_photo":
+#        if parameters.mode == "add_category_photo":
 #            add_category_position_menu(message)
+    else:
+        if parameters.mode == "decor_photo":
+            m = message
+            decor_photo(message = m)
 
 
 @bot.message_handler(content_types=['text'])
 def handle_command(message):
+    if not parameters.admin:
+        if parameters.mode == "type_kg":
+            type_kg(message)
+        elif parameters.mode == "type_wishes":
+            wishes_filling_decor(message)
     if parameters.admin:
-        if parameters.mode_in_admin == "add_item_description":
+        if parameters.mode == "add_item_description":
             parameters.current_item.description = message.text
             bot.send_message(chat_id=message.chat.id, text='Опис додано:) а тепер завантажте смачне фото цього смаколика!')
-            parameters.mode_in_admin = "add_item_photo"
-        if parameters.mode_in_admin == "add_category_position":
+            parameters.mode = "add_item_photo"
+        if parameters.mode == "add_category_position":
             add_position(msg=message)
-        elif parameters.mode_in_admin == "add_category_price":
+        elif parameters.mode == "add_category_price":
             if message.text == 'До меню керування':
                 admin_menu(msg=message)
                 return
             try:
-                price = int(message.text)
+                price = abs(int(message.text))
                 cat = Category(price)
                 cat.price = price
                 parameters.current_category = cat
                 db.save_category_to_db(category=parameters.current_category)
-                parameters.mode_in_admin = "add_category_position"
+                parameters.mode = "add_category_position"
 
                 keyboard = simple_keyb(['Пропустити', 'До меню керування'])
                 bot.send_message(chat_id=message.chat.id, reply_markup=keyboard,
@@ -181,16 +354,16 @@ def handle_command(message):
                     bot.send_message(
                         chat_id=message.chat.id, text='Дивно, якась невідома науці помилка... Можете спробувати ще або звернутися до розробника.')
                     return
-        elif parameters.mode_in_admin == "change_password":
+        elif parameters.mode == "change_password":
             if message.text == 'Ні, не хочу міняти':
-                parameters.mode_in_admin = None
+                parameters.mode = None
                 bot.send_message(chat_id=message.chat.id, text="Гаразд")
                 admin_menu(msg=message)
                 return
             result = is_password_valid(message.text)
             if result == "OK":
                 parameters.admin_password = message.text
-                parameters.mode_in_admin = None
+                parameters.mode = None
                 bot.send_message(chat_id=message.chat.id,
                                  text="Пароль змінено!")
                 admin_menu(msg=message)
@@ -201,10 +374,9 @@ def handle_command(message):
             bot.send_message(chat_id=message.chat.id,
                              text="Ок, повертаюся в звичайний режим)")
             parameters.admin = False
-            bot.send_message(chat_id=message.chat.id,
-                             text="Бажаєте замовити смачненьке?")
-            bot.send_message(chat_id=message.chat.id,
-                             reply_markup=kb_450, text="450 грн./кг")
+            markup = keyb([  ["Замовити смаколики", "show_list"] , ["Акції та новини", "news"] ])
+            bot.send_message(message.chat.id, text="Привіт, я бот кондитерської Mari_Ko BAKERY CLUB! Чого бажаєте?", reply_markup=markup)
+
         elif message.text == 'Змінити пароль':
             change_password_menu(msg=message)
         elif message.text == "Оновити дані":
@@ -228,7 +400,7 @@ def keyb(items):
 
 
 def simple_keyb(items):
-    markup = types.ReplyKeyboardMarkup()
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     for i in items:
         markup.row(i)
     markup.resize_keyboard = True
@@ -287,16 +459,6 @@ kb_450 = keyb(items=i450)
 #        bot.send_message(message.chat.id, key + '\n' + post[key])
 
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_query(call):
-    #    pass
-    if 'update_category_' in call.data:
-        price = int(str(call.data).replace('update_category_', ''))
-        add_category_position_menu(callback=call)
-        # db.update_category_in_db(price)
-#    if 'delete_category_' in call.data:
-#        price = int(str(call.data).replace('delete_category_', ''))
-#        db.delete_category_from_db(price)
 
 
 bot.polling(none_stop=True)
