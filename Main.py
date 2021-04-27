@@ -1,5 +1,8 @@
 # TODO   розділити торти капкейки(мін замовлення 6 штук) тощо, заборонити додавати товар з одною назвою, не давати базі ламатися
 
+import os
+import logging
+from flask import Flask, request
 from item import Item
 from logging import ERROR
 from category import Category
@@ -463,6 +466,25 @@ kb_450 = keyb(items=i450)
 #        bot.send_message(message.chat.id, key + '\n' + post[key])
 
 
-
-
-bot.polling(none_stop=True)
+if "HEROKU" in list(os.environ.keys()):
+    logger = telebot.logger
+    telebot.logger.setLevel(logging.INFO)
+    
+    server = Flask(__name__)
+    @server.route('/'+parameters.TOKEN, methods=['POST'])
+    def getMessage():
+        json_string = request.stream.read().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return "!", 200
+    
+    @server.route("/")
+    def webhook():
+        bot.remove_webhook()
+        bot.set_webhook(url="https://bakerybotmariko.herokuapp.com/"+parameters.TOKEN)
+        return "?", 200
+    
+    server.run(host="0.0.0.0", port=os.environ.get('PORT', 33507))
+else:       
+    bot.remove_webhook()
+    bot.polling(none_stop=True)
