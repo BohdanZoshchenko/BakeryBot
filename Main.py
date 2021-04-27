@@ -483,8 +483,9 @@ if "HEROKU" in list(os.environ.keys()):
         bot.remove_webhook()
         bot.set_webhook(url="https://bakerybotmariko.herokuapp.com/"+parameters.TOKEN)
         return "?", 200
-    
-    server.run(host="0.0.0.0", port=os.environ.get('PORT', 33507))
+    from waitress import serve
+    serve(server, host="0.0.0.0", port=os.environ.get('PORT', 33507))
+
 else:       
     bot.remove_webhook()
     bot.polling(none_stop=True)
