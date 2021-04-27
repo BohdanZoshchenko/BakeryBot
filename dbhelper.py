@@ -8,16 +8,9 @@ class DBHelper:
     connection = None
 
     def __init__(self):
-<<<<<<< HEAD
         #self.connection = connect(dbname = "python_test", user = "objectrocket", host = "localhost",password = "mypass")
 
         self.connection = connect(host="ec2-54-220-35-19.eu-west-1.compute.amazonaws.com",database="d9a5qf332rvd60",user="svcsvcnqpcihzf",port=5432,password="d24a90027d702d66f15d5b4eb658eecb672b202d0af5934f82b3aa933373371a")
-=======
-        #DATABASE_URL = os.environ['https://bakerybotmariko.herokuapp.com/db']
-
-        self.connection = psycopg2.connect(host="ec2-54-220-35-19.eu-west-1.compute.amazonaws.com",database="d9a5qf332rvd60",user="svcsvcnqpcihzf",port=5432,password="d24a90027d702d66f15d5b4eb658eecb672b202d0af5934f82b3aa933373371a")
-
->>>>>>> c945e86d1260e5d32dddf5f61d2a7c8464ea6083
 
         self.data_cursor = self.connection.cursor()
 
