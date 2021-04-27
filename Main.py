@@ -245,6 +245,8 @@ def handle_command(message):
 def callback_query(call):
     if 'delete_category_' in call.data:
         price = int(str(call.data).replace('delete_category_', ''))
+        
+        
 if "HEROKU" in list(os.environ.keys()):
     logger = telebot.logger
     telebot.logger.setLevel(logging.INFO)
