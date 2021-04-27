@@ -1,3 +1,6 @@
+import os
+from flask import Flask, request
+import logging
 from logging import ERROR
 from category import Category
 
@@ -242,5 +245,25 @@ def handle_command(message):
 def callback_query(call):
     if 'delete_category_' in call.data:
         price = int(str(call.data).replace('delete_category_', ''))
-        
-bot.polling(none_stop=True)
+if "HEROKU" in list(os.eviron.keys()):
+    logger = telebot.logger
+    telebot.logger.setLevel(logging.INFO)
+    
+    server = Flask(__name__)
+    @server.route('/'+parameters.TOKEN, methods=['POST'])
+    def getMessage():
+        json_string = request.stream.read().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return "!", 200
+    
+    @server.route("/")
+    def webhook():
+        bot.remove_webhook()
+        bot.set_webhook(url="https://bakerybotmariko.herokuapp.com/"+parameters.TOKEN)
+        return "?", 200
+    
+    server.run(host="0.0.0.0", port=os.environ.get('PORT', 33507))
+else:       
+    bot.remove_webhook()
+    bot.polling(none_stop=True)
