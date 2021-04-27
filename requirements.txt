@@ -15,9 +15,7 @@ dj-database-url==0.5.0
 feedparser==6.0.2
 flask
 gunicorn==19.0.0
-os
 psycopg2-binary==2.8.6
 pyTelegramBotAPI==3.7.7
 python-telegram-bot==13.4.1
-logging
 virtualenv==20.4.4
