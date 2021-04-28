@@ -1,4 +1,6 @@
 # TODO   розділити торти капкейки(мін замовлення 6 штук) тощо, заборонити додавати товар з одною назвою, не давати базі ламатися
+# TODO   заблокувати спроби додавати товар з однаковою назвою
+
 
 import os
 import logging
@@ -57,11 +59,11 @@ def get_call(call):
         elif call.data == "info":
             show_info(call)
     else:
-        if 'update_category_' in call.data:
-            price = int(str(call.data).replace('update_category_', ''))
-            parameters.category_from_db = db.get_category_by_price_from_db(price)
+        if 'update_item_' in call.data:
+            name = int(str(call.data).replace('update_item_', ''))
+            parameters.category_from_db = db.get_item_by_name_from_db(name)
 
-            add_category_position_menu(callback=call)
+            #add_category_position_menu(callback=call)
 
 def make_order(callback):
     print("ORDER")
@@ -249,6 +251,7 @@ def items_menu_admin(msg=None, callback=None):
 
     #db.add_item("Something", id)
     #keyboard = keyb([[db.get_items(id)[0], '45']])
+    """
     keyboard = simple_keyb(['Додати цінову категорію', 'До меню керування'])
     bot.send_message(chat_id=id, reply_markup=keyboard,
                      text="Давайте додамо нову цінову категорію або змінимо стару))")
@@ -261,7 +264,28 @@ def items_menu_admin(msg=None, callback=None):
         inline = keyb([['Змінити категорію', 'update_category_'+str(cat[0])]])
         bot.send_message(chat_id=id, reply_markup=inline,
                          text=str(cat[0]) + ' грн./кг + ціна за декор')
-
+    """
+    keyboard = simple_keyb(['Додати новий виріб', 'До меню керування'])
+    bot.send_message(chat_id=id, reply_markup=keyboard,
+                     text="Давайте додамо новий виріб або змінимо старий.")
+    items = db.get_each_item_from_db()
+    if len(items) > 0:
+        bot.send_message(chat_id=id, reply_markup=keyboard,
+                         text='Список доступних виробів:')
+    for item in items:
+        inline = keyb([ ['Змінити назву', 'update_item_name_'+str(item[0])],
+        ['Змінити опис', 'update_item_description_'+str(item[0])],
+        ['Змінити фото', 'update_item_photo_'+str(item[0])],
+        ['Змінити ціну', 'update_price__'+str(item[0])]
+        ])
+        text = ""
+        text += str(item[0])+"\n" #name
+        text += str(item[1])+"\n" #description
+        text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо")
+        bot.send_photo(chat_id=id, reply_markup=inline, photo=item[2],
+            caption=text)
+    
+    
 
 def items_menu_user(msg=None, callback=None):
     id = get_chat_id(msg, callback)
