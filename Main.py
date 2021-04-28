@@ -93,7 +93,7 @@ def type_kg(message):
            
             p = item_from_db[3]
             
-            orders_control.orders[client.id][0] += "\n" + str(kg) + " кг * " + str(p) + " = " + str(kg*p) + " ГРН"
+            orders_control.orders[client.id][0] += "\n" + str(kg) + " кг * " + str(p) + " = " + str(round(kg*p, 2)) + " ГРН"
             
             bot.send_message(chat_id=message.chat.id, text=orders_control.orders[client.id][0]+"\nЧудово. Тепер напишіть побажання щодо смаколика. Наприклад, про начинку і декор або дату бронювання")
             

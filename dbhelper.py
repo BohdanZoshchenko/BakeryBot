@@ -8,6 +8,9 @@ class DBHelper:
     connection = None
 
     def __init__(self):
+        # to push to Heroku use this Terminal command: PGUSER=objectrocket PGPWD=mypass heroku pg:push python_test DATABASE_URL --app bakerybotmariko
+
+
         #self.connection = connect(dbname = "python_test", user = "objectrocket", host = "localhost",password = "mypass")
 
         self.connection = connect(host="ec2-54-220-35-19.eu-west-1.compute.amazonaws.com",database="d9a5qf332rvd60",user="svcsvcnqpcihzf",port=5432,password="d24a90027d702d66f15d5b4eb658eecb672b202d0af5934f82b3aa933373371a")
