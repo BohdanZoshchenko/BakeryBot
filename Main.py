@@ -61,7 +61,7 @@ def get_call(call):
             show_info(call)
     else:
         if 'update_item_' in call.data:
-            name = int(str(call.data).replace('update_item_', ''))
+            name = str(call.data).replace('update_item_', '')
             item = db.get_item_by_name_from_db(name)
 
             inline = keyb([ ['Змінити назву', 'update_item_name_'+str(item[0])],
