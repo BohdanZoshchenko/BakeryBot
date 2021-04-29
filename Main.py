@@ -1,6 +1,6 @@
 # TODO   розділити торти капкейки(мін замовлення 6 штук) тощо, заборонити додавати товар з одною назвою, не давати базі ламатися
 # TODO   заблокувати спроби додавати товар з однаковою назвою
-
+# TODO   ЗАДІЗЕЙБЛИТИ юзер відповіді в адмінці
 
 import os
 import logging
@@ -269,21 +269,30 @@ def items_menu_admin(msg=None, callback=None):
     bot.send_message(chat_id=id, reply_markup=keyboard,
                      text="Давайте додамо новий виріб або змінимо старий.")
     items = db.get_each_item_from_db()
-    if len(items) > 0:
-        bot.send_message(chat_id=id, reply_markup=keyboard,
-                         text='Список доступних виробів:')
+    buttons = []
+
     for item in items:
+        """   
         inline = keyb([ ['Змінити назву', 'update_item_name_'+str(item[0])],
         ['Змінити опис', 'update_item_description_'+str(item[0])],
         ['Змінити фото', 'update_item_photo_'+str(item[0])],
-        ['Змінити ціну', 'update_price__'+str(item[0])]
+        ['Змінити ціну', 'update_price_'+str(item[0])]
         ])
+        
         text = ""
         text += str(item[0])+"\n" #name
         text += str(item[1])+"\n" #description
         text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо")
+        
         bot.send_photo(chat_id=id, reply_markup=inline, photo=item[2],
             caption=text)
+        """
+        buttons.append( [item[0]+" "+str(item[3])+" ГРН/КГ", "update_item_" + item[0]] )
+        
+    markup = keyb(buttons)
+    if len(items) > 0:
+        bot.send_message(chat_id=id, reply_markup=markup,
+                         text='Список доступних виробів:')
     
     
 
