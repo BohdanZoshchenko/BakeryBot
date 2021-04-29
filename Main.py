@@ -1,6 +1,7 @@
 # TODO   розділити торти капкейки(мін замовлення 6 штук) тощо, заборонити додавати товар з одною назвою, не давати базі ламатися
 # TODO   заблокувати спроби додавати товар з однаковою назвою
 # TODO   ЗАДІЗЕЙБЛИТИ юзер відповіді в адмінці
+#TODO безпека на сервері
 
 import os
 import logging
@@ -61,7 +62,21 @@ def get_call(call):
     else:
         if 'update_item_' in call.data:
             name = int(str(call.data).replace('update_item_', ''))
-            parameters.category_from_db = db.get_item_by_name_from_db(name)
+            item = db.get_item_by_name_from_db(name)
+
+            inline = keyb([ ['Змінити назву', 'update_item_name_'+str(item[0])],
+            ['Змінити опис', 'update_item_description_'+str(item[0])],
+            ['Змінити фото', 'update_item_photo_'+str(item[0])],
+            ['Змінити ціну', 'update_price_'+str(item[0])]
+            ])
+        
+            text = ""
+            text += str(item[0])+"\n" #name
+            text += str(item[1])+"\n" #description
+            text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо")
+            
+            bot.send_photo(chat_id=id, reply_markup=inline, photo=item[2],
+                caption=text)
 
             #add_category_position_menu(callback=call)
 
