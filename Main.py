@@ -60,15 +60,15 @@ def get_call(call):
         elif call.data == "info":
             show_info(call)
     else:
-        if 'update_item_' in call.data:
-            name = str(call.data).replace('update_item_', '')
+        if 'update_item_general_' in call.data:
+            name = str(call.data).replace('update_item_general_', '')
             print(name)
             item = db.get_item_by_name_from_db(name)
 
             inline = keyb([ ['Змінити назву', 'update_item_name_'+str(item[0])],
             ['Змінити опис', 'update_item_description_'+str(item[0])],
             ['Змінити фото', 'update_item_photo_'+str(item[0])],
-            ['Змінити ціну', 'update_price_'+str(item[0])]
+            ['Змінити ціну', 'update_item_price_'+str(item[0])]
             ])
         
             text = ""
@@ -79,8 +79,57 @@ def get_call(call):
             id = get_chat_id(callback=call)
             bot.send_photo(chat_id=id, reply_markup=inline, photo=item[2],
                 caption=text)
+        elif 'update_item_name_' in call.data:
+            name = str(call.data).replace('update_item_name_', '')
+            item = db.get_item_by_name_from_db(name)
+            txt = name+"\n"+"Напишіть нове ім'я."
+            id = get_chat_id(callback=call)
+            bot.send_message(chat_id=id, text=txt)
+            parameters.mode = 'update_item_name_'
+        elif 'update_item_description_' in call.data:
+            name = str(call.data).replace('update_item_description_', '')
+            item = db.get_item_by_name_from_db(name)
+            txt = name+"\n"+"Напишіть новий опис."
+            id = get_chat_id(callback=call)
+            bot.send_message(chat_id=id, text=txt)
+            parameters.mode = 'update_item_description_'
+        elif 'update_item_price_' in call.data:
+            name = str(call.data).replace('update_item_price_', '')
+            item = db.get_item_by_name_from_db(name)
+            txt = name+"\n"+"Напишіть нову ціну."
+            id = get_chat_id(callback=call)
+            bot.send_message(chat_id=id, text=txt)
+            parameters.mode = 'update_item_price_'
+        elif 'update_item_photo_' in call.data:
+            name = str(call.data).replace('update_item_photo_', '')
+            item = db.get_item_by_name_from_db(name)
+            txt = name+"\n"+"Надішліть нове фото."
+            id = get_chat_id(callback=call)
+            bot.send_message(chat_id=id, text=txt)
+            parameters.mode = 'update_item_photo_'
 
             #add_category_position_menu(callback=call)
+
+def update_item_name(callback=None,msg=None):
+    call=callback
+    message=msg
+    id = get_chat_id(callback=call, msg=message)
+
+
+def update_item_description(callback=None,msg=None):
+    call=callback
+    message=msg
+    id = get_chat_id(callback=call, msg=message)
+
+def update_item_price(callback=None,msg=None):
+    call=callback
+    message=msg
+    id = get_chat_id(callback=call, msg=message)
+
+def update_item_photo(callback=None,msg=None):
+    call=callback
+    message=msg
+    id = get_chat_id(callback=call, msg=message)
 
 def make_order(callback):
     print("ORDER")
@@ -205,7 +254,6 @@ def get_chat_id(msg=None, callback=None):
         id = callback.message.chat.id
     return id
 
-
 def is_password_valid(password):
     has8symbols = False
     containsDigit = False
@@ -304,7 +352,7 @@ def items_menu_admin(msg=None, callback=None):
         bot.send_photo(chat_id=id, reply_markup=inline, photo=item[2],
             caption=text)
         """
-        buttons.append( [item[0]+" "+str(item[3])+" ГРН/КГ", "update_item_" + item[0]] )
+        buttons.append( [item[0]+" "+str(item[3])+" ГРН/КГ", "update_item_general_" + item[0]] )
         
     markup = keyb(buttons)
     if len(items) > 0:
@@ -376,11 +424,19 @@ def handle_command(message):
         elif parameters.mode == "type_wishes":
             wishes_filling_decor(message)
     if parameters.admin:
-        if parameters.mode == "add_item_description":
+        if parameters.mode == 'update_item_name_':
+            update_item_name(msg=message)
+        elif parameters.mode == 'update_item_description_':
+            update_item_description(msg=message)
+        elif parameters.mode == 'update_item_price_':
+            update_item_price(msg=message)
+        elif parameters.mode == 'update_item_photo_':
+            update_item_photo(msg=message)
+        elif parameters.mode == "add_item_description":
             parameters.current_item.description = message.text
             bot.send_message(chat_id=message.chat.id, text='Опис додано:) а тепер завантажте смачне фото цього смаколика!')
             parameters.mode = "add_item_photo"
-        if parameters.mode == "add_category_position":
+        elif parameters.mode == "add_category_position":
             add_position(msg=message)
         elif parameters.mode == "add_category_price":
             if message.text == 'До меню керування':
