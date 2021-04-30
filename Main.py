@@ -75,6 +75,7 @@ def get_call(call):
             text += str(item[0])+"\n" #name
             text += str(item[1])+"\n" #description
             text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо")
+            print(text)
             id = get_chat_id(callback=call)
             bot.send_photo(chat_id=id, reply_markup=inline, photo=item[2],
                 caption=text)
@@ -196,7 +197,7 @@ def show_info(call):
 
 ####***ADMIN***####
 
-def get_chat_id(msg, callback):
+def get_chat_id(msg=None, callback=None):
     id = None
     if msg != None:
         id = msg.chat.id
