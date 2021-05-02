@@ -37,6 +37,28 @@ def start_msg(message = None, call=None):
     markup = keyb([ ["Замовити смаколики", "show_list"] , ["Інфо", "info"] ])
     bot.send_message(id, text="Привіт, я бот кондитерської Mari_Ko BAKERY CLUB! Чого бажаєте?", reply_markup=markup)
 
+def update_item_general(name, message=None, callback=None):
+        call=callback
+        print(name)
+        item = db.get_item_by_name_from_db(name)
+
+        parameters.current_item = item
+
+        inline = keyb([ ['Змінити назву', 'update_item_name_'+str(item[0])],
+            ['Змінити опис', 'update_item_description_'+str(item[0])],
+            ['Змінити фото', 'update_item_photo_'+str(item[0])],
+            ['Змінити ціну', 'update_item_price_'+str(item[0])]
+            ])
+        
+        text = ""
+        text += str(item[0])+"\n" #name
+        text += str(item[1])+"\n" #description
+        text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо")
+        print(text)
+        id = get_chat_id(callback=call, msg=message)
+        bot.send_photo(chat_id=id, reply_markup=inline, photo=item[2],
+                caption=text)
+
 @bot.callback_query_handler(func=lambda call: True)
 def get_call(call):
     if not parameters.admin:
@@ -61,24 +83,10 @@ def get_call(call):
             show_info(call)
     else:
         if 'update_item_general_' in call.data:
-            name = str(call.data).replace('update_item_general_', '')
-            print(name)
-            item = db.get_item_by_name_from_db(name)
-
-            inline = keyb([ ['Змінити назву', 'update_item_name_'+str(item[0])],
-            ['Змінити опис', 'update_item_description_'+str(item[0])],
-            ['Змінити фото', 'update_item_photo_'+str(item[0])],
-            ['Змінити ціну', 'update_item_price_'+str(item[0])]
-            ])
-        
-            text = ""
-            text += str(item[0])+"\n" #name
-            text += str(item[1])+"\n" #description
-            text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо")
-            print(text)
-            id = get_chat_id(callback=call)
-            bot.send_photo(chat_id=id, reply_markup=inline, photo=item[2],
-                caption=text)
+            n = str(call.data).replace('update_item_general_', '')
+            #print(name)
+            c = call
+            update_item_general(name = n, callback=c)
         elif 'update_item_name_' in call.data:
             name = str(call.data).replace('update_item_name_', '')
             item = db.get_item_by_name_from_db(name)
@@ -110,26 +118,72 @@ def get_call(call):
 
             #add_category_position_menu(callback=call)
 
+def add_item_name(msg):
+    parameters.item_obj = Item()
+    parameters.item_obj.name = msg.text
+
+    bot.send_message(chat_id=msg.chat.id, text="Напишіть опис.")
+    parameters.mode = "add_item_description"
+
+def add_item_description(msg):
+    parameters.item_obj.description = msg.text
+    bot.send_message(chat_id=msg.chat.id, text="Напишіть ціну.")
+    parameters.mode = "add_item_price"
+
+def add_item_price(msg):
+    parameters.item_obj.price = int(msg.text)
+    bot.send_message(chat_id=msg.chat.id, text="Надішліть фото.")
+    parameters.mode = "add_item_photo"
+
+def add_item_photo(msg):
+    fileID = msg.photo[-1].file_id
+
+    file_info = bot.get_file(fileID)
+    downloaded_file = bot.download_file(file_info.file_path)
+    parameters.item_obj.photo = downloaded_file
+    db.save_item_to_db(parameters.item_obj)
+    bot.send_message(chat_id=msg.chat.id, text="Новий товар додано!")
+    parameters.item_obj = None
+    parameters.mode = None
+
 def update_item_name(callback=None,msg=None):
     call=callback
     message=msg
-    id = get_chat_id(callback=call, msg=message)
-
+    # update db
+    db.update_item_name_in_db(start_name=parameters.current_item[0], result_name=message.text)
+    # show item
+    update_item_general(message.text, message=msg, callback=call)
 
 def update_item_description(callback=None,msg=None):
     call=callback
     message=msg
-    id = get_chat_id(callback=call, msg=message)
+    # update db
+    db.update_item_description_in_db(description=message.text, name=parameters.current_item[0])
+    # show item
+    update_item_general(parameters.current_item[0], message=msg, callback=call)
+
 
 def update_item_price(callback=None,msg=None):
     call=callback
     message=msg
-    id = get_chat_id(callback=call, msg=message)
+    # update db
+    db.update_item_price_in_db(price=int(message.text), name=parameters.current_item[0])
+    # show item
+    update_item_general(parameters.current_item[0], message=msg, callback=call)
+
 
 def update_item_photo(callback=None,msg=None):
     call=callback
     message=msg
-    id = get_chat_id(callback=call, msg=message)
+    # update db
+    fileID = message.photo[-1].file_id
+
+    file_info = bot.get_file(fileID)
+    downloaded_file = bot.download_file(file_info.file_path)
+    db.update_item_photo_in_db(photo=downloaded_file, name=parameters.current_item[0])
+    # show item
+    update_item_general(parameters.current_item[0], message=msg, callback=call)
+
 
 def make_order(callback):
     print("ORDER")
@@ -397,7 +451,7 @@ def add_category_position_menu(msg=None, callback=None):
 @bot.message_handler(content_types=['photo'])
 def handle_command(message):
     if parameters.admin:
-        if parameters.mode == "add_item_photo":
+        """if parameters.mode == "add_item_photo":
             fileID = message.photo[-1].file_id
             file_info = bot.get_file(fileID)
             downloaded_file = bot.download_file(file_info.file_path)
@@ -408,6 +462,11 @@ def handle_command(message):
             items = db.get_item_from_db(parameters.current_item.price, parameters.current_item.name)
             bot.send_message(chat_id=message.chat.id, text=items[0][0])
             bot.send_photo(chat_id=message.chat.id, photo=items[0][2])
+        el"""
+        if parameters.mode == 'update_item_photo_':
+            update_item_photo(msg=message)
+        elif parameters.mode == 'add_item_photo':
+            add_item_photo(msg=message)
 #        if parameters.mode == "add_category_photo":
 #            add_category_position_menu(message)
     else:
@@ -424,18 +483,24 @@ def handle_command(message):
         elif parameters.mode == "type_wishes":
             wishes_filling_decor(message)
     if parameters.admin:
-        if parameters.mode == 'update_item_name_':
+        if parameters.mode == 'add_item_name':
+            add_item_name(msg=message)
+        elif parameters.mode == 'add_item_description':
+            add_item_description(msg=message)
+        elif parameters.mode == 'add_item_price':
+            add_item_price(msg=message)
+        elif parameters.mode == 'add_item_photo':
+            add_item_photo(msg=message)
+        elif parameters.mode == 'update_item_name_':
             update_item_name(msg=message)
         elif parameters.mode == 'update_item_description_':
             update_item_description(msg=message)
         elif parameters.mode == 'update_item_price_':
             update_item_price(msg=message)
-        elif parameters.mode == 'update_item_photo_':
-            update_item_photo(msg=message)
-        elif parameters.mode == "add_item_description":
-            parameters.current_item.description = message.text
-            bot.send_message(chat_id=message.chat.id, text='Опис додано:) а тепер завантажте смачне фото цього смаколика!')
-            parameters.mode = "add_item_photo"
+        #elif parameters.mode == "add_item_description":
+         #   parameters.current_item.description = message.text
+         #  bot.send_message(chat_id=message.chat.id, text='Опис додано:) а тепер завантажте смачне фото цього смаколика!')
+           # parameters.mode = "add_item_photo"
         elif parameters.mode == "add_category_position":
             add_position(msg=message)
         elif parameters.mode == "add_category_price":
@@ -498,6 +563,10 @@ def handle_command(message):
             add_category(msg=message)
         elif message.text == 'До меню керування':
             admin_menu(msg=message)
+        elif message.text == 'Додати новий виріб':
+            bot.send_message(chat_id=message.chat.id, text="Напишіть ім'я.")
+            parameters.mode = "add_item_name"
+            #add_item_name()
         # else:
            # bot.send_message(chat_id=message.chat.id, text="Не зрозумів. Давайте спробуємо ще раз))")
            # admin_menu(msg=message)

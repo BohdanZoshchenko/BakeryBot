@@ -5,7 +5,7 @@ admin = False
 
 mode = None
 
-
+item_obj = None
 
 current_category = None
 category_from_db = None

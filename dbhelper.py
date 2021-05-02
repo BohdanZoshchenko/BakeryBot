@@ -131,6 +131,42 @@ class DBHelper:
         self.connection.commit()
         return rows
 
+    def update_item_name_in_db(self, start_name, result_name):
+        sql = """
+        UPDATE item
+        SET name = %s
+        WHERE name = %s;
+        """
+        self.data_cursor.execute(sql, [result_name, start_name])
+        self.connection.commit()
+
+    def update_item_description_in_db(self, name, description):
+        sql = """
+        UPDATE item
+        SET description = %s
+        WHERE name = %s;
+        """
+        self.data_cursor.execute(sql, [description, name])
+        self.connection.commit()
+    
+    def update_item_photo_in_db(self, name, photo):
+        sql = """
+        UPDATE item
+        SET photo = %s
+        WHERE name = %s;
+        """
+        self.data_cursor.execute(sql, [photo, name])
+        self.connection.commit()
+    
+    def update_item_price_in_db(self, name, price):
+        sql = """
+        UPDATE item
+        SET price = %s
+        WHERE name = %s;
+        """
+        self.data_cursor.execute(sql, [price, name])
+        self.connection.commit()
+
 ##from contextlib import closing
 
 ##with closing(psycopg2.connect(...)) as conn:
