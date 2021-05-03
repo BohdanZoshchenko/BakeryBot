@@ -1,0 +1,20 @@
+{
+    "text": "Бажаєте видалити <v>name</v>?",
+    "buttons":
+    {
+        "Так":
+        {
+            "text": "<v>name</v> буде ВИДАЛЕНО назавжди. Точно бажаєте продовжити?",
+            "buttons":
+            {
+                "Видалити":
+                {
+                    "func": "db.delete_item_from_db(<v>name</v>)",
+                    "text": "Виріб видалено"
+                },
+                "Ні, скасувати": "update_item_general(<v>name</v>, <v>id</v>)"
+            }
+        },
+        "Ні": "update_item_general(<v>name</v>, <v>id</v>)"
+    }       
+}

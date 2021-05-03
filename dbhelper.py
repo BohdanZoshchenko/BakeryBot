@@ -76,6 +76,13 @@ class DBHelper:
         self.data_cursor.execute(sql, [price])
         self.connection.commit()
 
+    def delete_item_from_db(self, name):
+        print("DB:"+name)
+        sql = """DELETE FROM item WHERE name = %s;"""
+        
+        self.data_cursor.execute(sql, [name])
+        self.connection.commit()
+
     def get_each_category_from_db(self):
         sql = """SELECT * FROM category ORDER BY price"""
         self.data_cursor.execute(sql, [])
