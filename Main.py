@@ -1,8 +1,13 @@
 # TODO   розділити торти капкейки(мін замовлення 6 штук) тощо, заборонити додавати товар з одною назвою, не давати базі ламатися
 # TODO   заблокувати спроби додавати товар з однаковою назвою
 # TODO   ЗАДІЗЕЙБЛИТИ юзер відповіді в адмінці
-#TODO безпека на сервері
+#TODO коректність вводу
+#TODO безпека на сервері, БД, перезапуск на сервері, повний день,чистки тощо
+#TODO новий спосіб представлення+ збереження параметрів у json (пароль, токен, адмін, мод, інфо, новини, якісь поточні)
+#TODO Надсилання замовлень і можливість перегляду всіх, робота з ними
+# TODO змінювати статус замовлення
 
+from telegram import ParseMode
 import os
 import logging
 from flask import Flask, request
@@ -11,7 +16,7 @@ from logging import ERROR
 from category import Category
 import telebot
 from telebot import types
-import feedparser
+from instascrape import *
 import params
 import orders_control
 from dbhelper import DBHelper
@@ -26,6 +31,42 @@ data_from_json = []
 
 ###******USER***###
 
+def get_insta_post():
+    if params.insta_post!=None:
+        return params.insta_post
+
+    from instapy import InstaPy
+    from time import sleep
+
+
+
+    sess = InstaPy(username="bohdanzoshchenko", password="artaxerx", headless_browser=True)
+    sess.login() 
+
+    sleep(2)
+
+
+    session_id = sess.browser.session_id
+
+    sleep(2)
+    # Connecting the profile 
+    # Instantiate the scraper objects 
+    profile = Profile('https://www.instagram.com/mari_ko_bakeryclub/')
+
+    # Scrape their respective data 
+    profile.scrape(webdriver=sess.browser)
+
+    recent = profile.get_recent_posts(1)[0]
+
+
+
+    sess.browser.close()
+    print("Awesome")
+    print(recent.to_dict())
+    params.insta_post = recent.url
+    return params.insta_post
+
+
 
 @bot.message_handler(commands=['start', 'help'])
 def start(message):
@@ -38,6 +79,8 @@ def start_msg(message = None, call=None):
     id = get_chat_id(msg=message, callback=call)
     markup = keyb([ ["Замовити смаколики", "show_list"] , ["Інфо", "info"] ])
     bot.send_message(id, text="Привіт, я бот кондитерської Mari_Ko BAKERY CLUB! Чого бажаєте?", reply_markup=markup)
+
+    #bot.send_message(id, text="<a href='"+get_insta_post()+"'>Новинка! Тицяй сюди!</a>",parse_mode=ParseMode.HTML)
 
 def update_item_general(name, id = None, message=None, callback=None):
         call=callback
@@ -366,7 +409,7 @@ def show_item(callback, item_name):
         #bot.send_message(chat_id=callback.message.chat.id, text="Ціна: " + str(item[3]) + " грн./кг + за декор окремо.", reply_markup=markup) #price
 
 def show_info(call):
-    info = 'З додаткових питань, пишіть кондитерці Марії @MariaYav'
+    info = params.info
     markup = keyb([ ['Замовити смаколики', "show_list"] ])
     bot.send_message(chat_id=call.message.chat.id, text=info, reply_markup=markup)
 
@@ -599,14 +642,20 @@ def handle_command(message):
             change_password_menu(msg=message)
         elif message.text == "Оновити дані":
             items_menu_admin(msg=message)
-        elif message.text == "Додати цінову категорію":
-            add_category(msg=message)
+        elif message.text == "Оновити інфо":
+            bot.send_message(chat_id=message.chat.id, text="Міняємо інфо: "+params.info+"\nНапишіть нове.")
+            params.mode = "change_info"
+        #elif message.text == "Додати цінову категорію":
+        #    add_category(msg=message)
         elif message.text == 'До меню керування':
             admin_menu(msg=message)
         elif message.text == 'Додати новий виріб':
             bot.send_message(chat_id=message.chat.id, text="Напишіть ім'я.")
             params.mode = "add_item_name"
-            #add_item_name()
+        elif params.mode == "change_info":
+            params.info=message.text
+            params.mode = None
+            bot.send_message(chat_id=message.chat.id, text="Інфо змінено: "+params.info)
         # else:
            # bot.send_message(chat_id=message.chat.id, text="Не зрозумів. Давайте спробуємо ще раз))")
            # admin_menu(msg=message)
@@ -631,19 +680,8 @@ def simple_keyb(items):
     for i in items:
         markup.row(i)
     markup.resize_keyboard = True
-    return markup
-
-
-FEED_URL = 'https://widget.stagram.com/rss/n/mari_ko_bakeryclub'
-
-
-def feed_parser():
-    NewsFeed = {'Inst': 'https://widget.stagram.com/rss/n/mari_ko_bakeryclub'}
-    message = dict()
-    for key in NewsFeed.keys():
-        current_news = feedparser.parse(NewsFeed[key]).entries[0]
-        message[key] = current_news.title + '\n' + current_news.link
-    return message
+    return 
+    
 
 
 if "HEROKU" in list(os.environ.keys()):

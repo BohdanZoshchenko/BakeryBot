@@ -11,4 +11,8 @@ current_category = None
 category_from_db = None
 current_item = None
 
+insta_post=None
+
+info = 'З додаткових питань, пишіть кондитерці Марії @MariaYav'
+
 ####commit it

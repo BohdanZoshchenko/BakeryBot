@@ -2,6 +2,7 @@
     "text": "Бажаєте видалити <v>name</v>?",
     "buttons":
     {
+        "Ні": "update_item_general(<v>name</v>, <v>id</v>)",
         "Так":
         {
             "text": "<v>name</v> буде ВИДАЛЕНО назавжди. Точно бажаєте продовжити?",
@@ -14,7 +15,6 @@
                 },
                 "Ні, скасувати": "update_item_general(<v>name</v>, <v>id</v>)"
             }
-        },
-        "Ні": "update_item_general(<v>name</v>, <v>id</v>)"
+        }
     }       
 }
