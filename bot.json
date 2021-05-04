@@ -9,11 +9,32 @@
 
         "db" :
         {
-            "host" : "ec2-54-220-35-19.eu-west-1.compute.amazonaws.com",
-            "database" : "d9a5qf332rvd60", 
-            "user" : "svcsvcnqpcihzf",
-            "port" : 5432,
-            "password" : "d24a90027d702d66f15d5b4eb658eecb672b202d0af5934f82b3aa933373371a"
+            "create_tables" :
+            [
+                "CREATE TABLE IF NOT EXISTS category (price integer NOT NULL DEFAULT '450', PRIMARY KEY (price))",
+        
+                "CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, price integer NOT NULL DEFAULT '450')",
+                
+                "CREATE TABLE IF NOT EXISTS client_order (client_id integer NOT NULL DEFAULT '450', description varchar NOT NULL, photo bytea)"
+            ],
+            
+            "production" :
+            {
+                "host" : "localhost",
+                "database" : "python_test", 
+                "user" : "objectrocket",
+                "port" : 5432,
+                "password" : "mypass"
+            },
+
+            "development" :
+            {
+                "host" : "ec2-54-220-35-19.eu-west-1.compute.amazonaws.com",
+                "database" : "d9a5qf332rvd60", 
+                "user" : "svcsvcnqpcihzf",
+                "port" : 5432,
+                "password" : "d24a90027d702d66f15d5b4eb658eecb672b202d0af5934f82b3aa933373371a"
+            }
         },
         
         "instagram_link" : "https://www.instagram.com/mari_ko_bakeryclub/",
@@ -21,14 +42,15 @@
         {
             "login" : "",
             "password" : ""
-        },
-
-        "telegram_info" : "З додаткових питань пишіть кондитерці Марії @MariaYav",
-        "recent_post_title" : "📰Свіжа новина📰\n🆕Натисніть на цей текст🆕"
+        }
     },
 
     "main" :
     {
+        "unknown_input" : "Я вас не розумію😕 Спробуйте якось інакше.",
+        "telegram_info" : "З додаткових питань пишіть кондитерці Марії @MariaYav",
+        "recent_post_title" : "📰Свіжа новина📰\n🆕Натисніть на цей текст🆕",
+
         "gotos" :
         {
             "start" :
@@ -39,12 +61,13 @@
                     [ ["Замовити смаколики", "order"] ],
                     [ ["Інфо", "info"] ]
                 ],
-                "simple_buttons" : "Почати",
-                "goto_status" : null
+                "simple_buttons" : "Почати"
             },
             "order" :
             {
-                "text" : "Обирайте:)"
+                "text" : "Обирайте:)",
+                "goto_status" : null,
+                "sql" :  "SELECT * FROM item ORDER BY price"
             }
         },
         "commands" :

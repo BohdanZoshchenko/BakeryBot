@@ -5,11 +5,11 @@ from flask import Flask, request
 import telebot
 from telebot import types
 import json_helper
-import db
+import db_helper
 
 bot_tree = json_helper.bot_json_to_obj()
 
-bot = telebot.TeleBot(bot_tree["params"]["telegram_token"])  
+bot = telebot.TeleBot(bot_tree["params"]["telegram_token"])
 
 def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons):
     if goto == None:
@@ -50,7 +50,7 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons):
         print(goto + "Goto has no text")
 
 def handle_unknown_input(chat_id):
-    bot.send_message(chat_id, "Я вас не розумію😕 Спробуйте якось інакше.")
+    bot.send_message(chat_id, bot_tree["main"]["unknown_input"])
 
 @bot.message_handler()
 def handle_user_messages_and_simple_buttons(message:types.Message):
@@ -84,7 +84,7 @@ def handle_user_messages_and_simple_buttons(message:types.Message):
                 handle_unknown_input(message)
                 print("No command body")
         elif len(message.text) > 1:
-            # simple button
+            # simple buttons
             goto = None
             stop = False
             for row in simple_buttons:
@@ -116,7 +116,7 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
 def run():
     if "HEROKU" in list(os.environ.keys()):
         logger = telebot.logger
-        telebot.logger.setLevel(logging.INFO)
+        logger.setLevel(logging.INFO)
         
         server = Flask(__name__)
         @server.route('/'+bot_tree["params"]["telegram_token"], methods=['POST'])
