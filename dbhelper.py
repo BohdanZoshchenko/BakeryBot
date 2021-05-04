@@ -1,5 +1,3 @@
-import psycopg2
-
 from psycopg2 import connect, extensions, sql
 import orders_control
 

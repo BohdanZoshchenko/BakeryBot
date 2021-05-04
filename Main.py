@@ -1,3 +1,4 @@
+#TODO юзерські параметри
 # TODO   розділити торти капкейки(мін замовлення 6 штук) тощо, заборонити додавати товар з одною назвою, не давати базі ламатися
 # TODO   заблокувати спроби додавати товар з однаковою назвою
 # TODO   ЗАДІЗЕЙБЛИТИ юзер відповіді в адмінці
@@ -6,13 +7,13 @@
 #TODO новий спосіб представлення+ збереження постійних параметрів у json (пароль, токен, адмін, мод, інфо, новини, якісь поточні)
 #TODO Надсилання замовлень і можливість перегляду всіх, робота з ними
 # TODO змінювати статус замовлення
+# TODO щоб бот на сервері швидше заводився після першого повідомлення
 
 from telegram import ParseMode
 import os
 import logging
 from flask import Flask, request
 from item import Item
-from logging import ERROR
 from category import Category
 import telebot
 from telebot import types
