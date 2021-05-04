@@ -1,19 +1,13 @@
-import json
 import os
 import logging
 from typing import Dict
 from flask import Flask, request
 import telebot
 from telebot import types
+import json_helper
 import db
 
-def bot_json_to_obj():
-    data = None
-    with open("bot.json", "r") as read_file:
-        data = json.load(read_file)
-    return data
-
-bot_tree = bot_json_to_obj()
+bot_tree = json_helper.bot_json_to_obj()
 
 bot = telebot.TeleBot(bot_tree["params"]["telegram_token"])  
 
