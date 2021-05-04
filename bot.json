@@ -18,7 +18,7 @@
                 "CREATE TABLE IF NOT EXISTS client_order (client_id integer NOT NULL DEFAULT '450', description varchar NOT NULL, photo bytea)"
             ],
             
-            "production" :
+            "development" :
             {
                 "host" : "localhost",
                 "database" : "python_test", 
@@ -27,7 +27,7 @@
                 "password" : "mypass"
             },
 
-            "development" :
+            "production" :
             {
                 "host" : "ec2-54-220-35-19.eu-west-1.compute.amazonaws.com",
                 "database" : "d9a5qf332rvd60", 

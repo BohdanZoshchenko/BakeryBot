@@ -15,13 +15,15 @@ def do_sql(sql:str, fields=None):
         print("Connected to DB")
         with conn.cursor() as cursor:
             print("DB: cursor created")
+            result = None
             if fields != None:
-                cursor.execute(sql, fields)
+                result = cursor.execute(sql, fields)
             else:
-                cursor.execute(sql)
+                result = cursor.execute(sql)
             print("DB: query execution was succesful")
         conn.commit()
         print("DB: commit was succesful")
+        print("Query result: " + result)
 
 def create_tables():
     create_tables = bot_tree["params"]["db"]["create_tables"]
