@@ -51,7 +51,7 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons, param = None):
                 p = "'"+p+"'"
             sql = sql.replace("%s", p)
         sql_result = db_helper.do_sql(sql)
-        print(sql_result)
+
     # This block should be always in the end, before sending message     
     if "script" in gotos[goto].keys():
         func = gotos[goto]["script"]

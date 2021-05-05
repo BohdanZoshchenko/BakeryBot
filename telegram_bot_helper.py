@@ -18,7 +18,7 @@ def show_single_item(chat_id, param, sql_result):
     item = sql_result[0]
     text = '*'+param+'*\n'
     text += str(item[1])+"\n" #description
-    text += str("Ціна: " + str(item[3]) + " ГРН/КГ + *а декор окремо") + "\n"#price
+    text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо") + "\n"#price
     text += "Унікальний декор за вашими побажаннями" + "\n"
     text += "Мінімальна вага до замовлення *2 кг*"
     bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown") 
