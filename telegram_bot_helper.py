@@ -21,4 +21,13 @@ def show_single_item(chat_id, param, sql_result):
     text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо") + "\n"#price
     text += "Унікальний декор за вашими побажаннями" + "\n"
     text += "Мінімальна вага до замовлення *2 кг*"
-    bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown") 
+    markup = types.InlineKeyboardMarkup()
+    order_button = types.InlineKeyboardButton(
+            'Замовити', callback_data='order' + item[0])
+    markup.add(order_button)
+    info_button = types.InlineKeyboardButton(
+            'Інфо', callback_data='info')
+    back_button = types.InlineKeyboardButton(
+            'Назад', callback_data='new_greeting')
+    markup.row([info_button, back_button])
+    bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown", reply_markup=markup) 

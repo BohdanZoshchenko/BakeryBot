@@ -93,6 +93,11 @@
                 "description" : "Create buttons from DB items entries",
                 "sql" : "SELECT name, price FROM item ORDER BY price",
                 "script" : "show_items"
+            },
+
+            "new_greeting" :
+            {
+
             }
         },
         "composite_callbacks" :
