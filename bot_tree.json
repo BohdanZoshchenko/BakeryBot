@@ -1,7 +1,6 @@
 {
     "description" : "Chat bot JSON chat tree",
     "for_customer" : "Mari_Ko Bakery Club",
-    "platform" : "Telegram",
 
     "params":
     {
@@ -52,7 +51,6 @@
     "user" :
     {
         "unknown_input" : "Я вас не розумію😕 Спробуйте якось інакше.",
-        "telegram_info" : "З додаткових питань пишіть кондитерці Марії @MariaYav",
         "recent_post_title" : "📰Свіжа новина📰\n🆕Натисніть на цей текст🆕",
 
         "simple_gotos" :
@@ -85,10 +83,15 @@
         ],
         "simple_callbacks" :
         {
+            "info" :
+            {
+                "text" : "З додаткових питань пишіть кондитерці Марії @MariaYav"
+            },
+
             "order" :
             {
                 "description" : "Create buttons from DB items entries",
-                "sql" : "SELECT * FROM item ORDER BY price",
+                "sql" : "SELECT name, price FROM item ORDER BY price",
                 "script" : "show_items"
             }
         },
@@ -96,6 +99,7 @@
         {
             "show_item" : 
             {
+                "sql" : "SELECT name, description, photo, price FROM item WHERE name=%s",
                 "script" : "show_single_item"
             }
         }

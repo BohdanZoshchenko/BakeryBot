@@ -1,10 +1,11 @@
 from modules import *
-from telegram_bot_helper import *
+import telegram_bot_helper as bot_helper
+from inspect import signature
 
-bot = telegram_bot_helper.bot
-bot_tree = telegram_bot_helper.bot_tree
+bot = bot_helper.bot
+bot_tree = bot_helper.bot_tree
 
-def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons, goto_key = None):
+def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons, param = None):
     if goto == None:
         print("Goto is None")
         return
@@ -39,18 +40,24 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons, goto_key = None):
                     buttons_row.append(types.KeyboardButton(text=button[0]))
                 simple_keyboard.row(*buttons_row)
             markup = simple_keyboard
-        
-    # This block should be always in the end, before sending message
+    
+    sql = None
     sql_result = None
     if "sql" in gotos[goto].keys():
         sql = gotos[goto]["sql"]
+        if param:
+            p = param
+            if isinstance(param, str):
+                p = "'"+p+"'"
+            sql = sql.replace("%s", p)
         sql_result = db_helper.do_sql(sql)
-            
+        print(sql_result)
+    # This block should be always in the end, before sending message     
     if "script" in gotos[goto].keys():
         func = gotos[goto]["script"]
                 
-        script = func + "()"
-        exec_script(script, sql_result, chat_id)
+        script = "bot_helper." + func + str(signature(eval("bot_helper." + func)))
+        execute_script(script, chat_id, sql, sql_result, param)
                 
         return
     # Block end
@@ -125,17 +132,14 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
         cc_keys = composite_callbacks.keys()
         for key in cc_keys:
             if key in callb:
-                goto = callb[len(key):len(callb)-1]
-                handle_goto(chat_id, goto, composite_callbacks, simple_buttons, goto_key = key)
+                param = callb[len(key):len(callb)]
+                handle_goto(chat_id, key, composite_callbacks, simple_buttons, param)
+                return
         handle_unknown_input(chat_id)
         print(callb + ": callback undefined")
 
-def exec_script(script, sql_result, chat_id):
-    telegram_bot_helper.global_vars = globals()
-    telegram_bot_helper.local_vars = locals()
-    telegram_bot_helper.chat_id = chat_id
-    telegram_bot_helper.sql_result = sql_result
-    telegram_bot_helper.exec_script(script)
+def execute_script(script, chat_id, sql, sql_result, param):
+    eval(script, None, locals())
 
 def run():
     if "HEROKU" in list(os.environ.keys()):
