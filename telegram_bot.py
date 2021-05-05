@@ -1,28 +1,23 @@
-import os
-import logging
-from typing import Dict
-from flask import Flask, request
-import telebot
-from telebot import types
-import json_helper
-import db_helper
+from modules import *
+from telegram_bot_helper import *
 
-bot_tree = json_helper.bot_json_to_obj()
+bot = telegram_bot_helper.bot
+bot_tree = telegram_bot_helper.bot_tree
 
-bot = telebot.TeleBot(bot_tree["params"]["telegram_token"])
-
-def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons):
+def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons, goto_key = None):
     if goto == None:
         print("Goto is None")
         return
+
     text = None
     if "text" in gotos[goto].keys():
         text = gotos[goto]["text"]
     else:
-        print(goto + "Goto has no text message")
+        print(goto + ": Goto has no text message")
+
+    markup = None
+
     if text:
-        markup = None
-        
         inline_keyboard = None
         if "inline_buttons" in gotos[goto].keys():
             inline_keyboard = types.InlineKeyboardMarkup()
@@ -44,21 +39,36 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons):
                     buttons_row.append(types.KeyboardButton(text=button[0]))
                 simple_keyboard.row(*buttons_row)
             markup = simple_keyboard
-    
+        
+    # This block should be always in the end, before sending message
+    sql_result = None
+    if "sql" in gotos[goto].keys():
+        sql = gotos[goto]["sql"]
+        sql_result = db_helper.do_sql(sql)
+            
+    if "script" in gotos[goto].keys():
+        func = gotos[goto]["script"]
+                
+        script = func + "()"
+        exec_script(script, sql_result, chat_id)
+                
+        return
+    # Block end
+
+    # If there was script, this message will not be sent 
+    if text:
         bot.send_message(chat_id, text, reply_markup=markup)
-    else:
-        print(goto + "Goto has no text")
 
 def handle_unknown_input(chat_id):
-    bot.send_message(chat_id, bot_tree["main"]["unknown_input"])
+    bot.send_message(chat_id, bot_tree["user"]["unknown_input"])
 
 @bot.message_handler()
 def handle_user_messages_and_simple_buttons(message:types.Message):
     chat_id = message.chat.id
 
-    gotos:Dict = bot_tree["main"]["gotos"]
-    commands:Dict = bot_tree["main"]["commands"]
-    simple_buttons = bot_tree["main"]["simple_buttons"]
+    gotos:Dict = bot_tree["user"]["simple_gotos"]
+    commands:Dict = bot_tree["user"]["commands"]
+    simple_buttons = bot_tree["user"]["simple_buttons"]
 
     if message.text != None and message.text != "":
         # command
@@ -100,18 +110,32 @@ def handle_user_messages_and_simple_buttons(message:types.Message):
             handle_unknown_input(message)
 
 @bot.callback_query_handler(func=lambda call: True)
-def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
+def handle_inline_buttons_callbacks(callback:types.CallbackQuery): 
     chat_id = callback.message.chat.id
 
-    gotos:Dict = bot_tree["main"]["gotos"]
-    simple_buttons = bot_tree["main"]["simple_buttons"]
+    simple_callbacks:Dict = bot_tree["user"]["simple_callbacks"]
+    composite_callbacks:Dict = bot_tree["user"]["composite_callbacks"]
+    simple_buttons = bot_tree["user"]["simple_buttons"]
 
-    goto = callback.data
-    if goto in gotos.keys():
-        handle_goto(chat_id, goto, gotos, simple_buttons)
+    callb = callback.data
+    print(callb)
+    if callb in simple_callbacks.keys():
+        handle_goto(chat_id, callb, simple_callbacks, simple_buttons)
     else:
+        cc_keys = composite_callbacks.keys()
+        for key in cc_keys:
+            if key in callb:
+                goto = callb[len(key):len(callb)-1]
+                handle_goto(chat_id, goto, composite_callbacks, simple_buttons, goto_key = key)
         handle_unknown_input(chat_id)
-        print(goto + ":Goto undefined")
+        print(callb + ": callback undefined")
+
+def exec_script(script, sql_result, chat_id):
+    telegram_bot_helper.global_vars = globals()
+    telegram_bot_helper.local_vars = locals()
+    telegram_bot_helper.chat_id = chat_id
+    telegram_bot_helper.sql_result = sql_result
+    telegram_bot_helper.exec_script(script)
 
 def run():
     if "HEROKU" in list(os.environ.keys()):

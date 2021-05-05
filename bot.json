@@ -1,4 +1,8 @@
 {
+    "description" : "Chat bot JSON chat tree",
+    "for_customer" : "Mari_Ko Bakery Club",
+    "platform" : "Telegram",
+
     "params":
     {
         "telegram_token" : "1793479610:AAFJBhZAGwlVbddGk-qt4dGHvEnpDn3R5C0",
@@ -45,29 +49,23 @@
         }
     },
 
-    "main" :
+    "user" :
     {
         "unknown_input" : "Я вас не розумію😕 Спробуйте якось інакше.",
         "telegram_info" : "З додаткових питань пишіть кондитерці Марії @MariaYav",
         "recent_post_title" : "📰Свіжа новина📰\n🆕Натисніть на цей текст🆕",
 
-        "gotos" :
+        "simple_gotos" :
         {
             "start" :
             {
-                "text" : "Привіт 👋😊, я бот 🤖 кондитерської 🍰🎂🧁 Mari_Ko Bakery Club 🕶️! Чого бажаєте 🧞😊?",
+                "text" : "Привіт 👋😊, я бот 🤖 кондитерської 🍰🎂🧁 Mari_Ko Bakery Club 🕶️! Чого бажаєте 🧞?",
                 "inline_buttons" : 
                 [
                     [ ["Замовити смаколики", "order"] ],
                     [ ["Інфо", "info"] ]
                 ],
                 "simple_buttons" : "Почати"
-            },
-            "order" :
-            {
-                "text" : "Обирайте:)",
-                "goto_status" : null,
-                "sql" :  "SELECT * FROM item ORDER BY price"
             }
         },
         "commands" :
@@ -84,6 +82,22 @@
         "simple_buttons" :
         [
             [ ["Почати", "start" ] ]
-        ]
+        ],
+        "simple_callbacks" :
+        {
+            "order" :
+            {
+                "description" : "Create buttons from DB items entries",
+                "sql" : "SELECT * FROM item ORDER BY price",
+                "script" : "show_items"
+            }
+        },
+        "composite_callbacks" :
+        {
+            "show_item" : 
+            {
+                "script" : "show_single_item"
+            }
+        }
     }
 }
