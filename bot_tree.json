@@ -155,7 +155,9 @@
                 "after_comma" : 2,
                 "next" : 
                 {
-                    "func" : ""
+                    "text" : "Добре!",
+                    "func" : "",
+                    "next" : ""
                 }
             }
         }

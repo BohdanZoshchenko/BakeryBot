@@ -27,12 +27,12 @@ def do_sql(sql:str, fields=None, records_count_to_fetch:int=None):
                     result = cursor.fetchall()
                 elif records_count_to_fetch > 0:
                     result = cursor.fetchmany(records_count_to_fetch)
-                else:
-                    print("DB: records count variable should be more than zero")
+                #else:
+                   #print("DB: records count variable should be more than zero")
             except:
                 pass
         conn.commit()
-        print("DB: commit was succesful")
+        #print("DB: commit was succesful")
         #if isinstance(result, list):
         #   print("DB: query result: " + str(result))
         return result
