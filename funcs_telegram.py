@@ -1,5 +1,4 @@
-# This module is NOT UNIVERSAL for different bots
-
+# this module is NOT UNIVERSAL for different bots
 from modules import *
 
 bot_tree = json_helper.bot_json_to_obj()
