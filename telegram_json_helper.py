@@ -1,3 +1,5 @@
+# This module is NOT UNIVERSAL for different bots
+
 from modules import *
 
 bot_tree = json_helper.bot_json_to_obj()
@@ -9,7 +11,7 @@ def show_items(chat_id, sql_result):
     markup = types.InlineKeyboardMarkup()
     for item in items:
         button = types.InlineKeyboardButton(
-            '🍰 '+ item[0]+' '+str(item[1]) + ' ГРН/КГ', callback_data='show_item' + item[0])
+            '🍰 '+ item[0]+' '+str(item[1]) + ' ГРН/КГ', callback_data='show_item%' + item[0])
         markup.add(button)
     bot.send_message(chat_id, "Обирайте 🧐", reply_markup=markup)
 
@@ -23,11 +25,15 @@ def show_single_item(chat_id, param, sql_result):
     text += "Мінімальна вага до замовлення *2 кг*"
     markup = types.InlineKeyboardMarkup()
     order_button = types.InlineKeyboardButton(
-            'Замовити', callback_data='order' + item[0])
+            'Замовити', callback_data='order_item%' + param)
     markup.add(order_button)
     info_button = types.InlineKeyboardButton(
             'Інфо', callback_data='info')
     back_button = types.InlineKeyboardButton(
             'Назад', callback_data='new_greeting')
-    markup.row([info_button, back_button])
-    bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown", reply_markup=markup) 
+    markup.row(info_button, back_button)
+    bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown", reply_markup=markup)
+
+def order_funnel_on_type_kg(input, param):
+    out = "\n" + str(input) + " кг * " + str(param) + " = " + str(round(input*param, 2)) + " ГРН"
+    print(out)

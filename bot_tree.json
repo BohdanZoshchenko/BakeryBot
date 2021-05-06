@@ -50,7 +50,11 @@
 
     "user" :
     {
-        "unknown_input" : "Я вас не розумію😕 Спробуйте якось інакше.",
+        "unknown_input" : 
+        {
+            "text" : "Я вас не розумію😕 Спробуйте якось інакше.",
+            "inline_buttons" : [[["Спробувати", "new_greeting"]]]
+        },
         "recent_post_title" : "📰Свіжа новина📰\n🆕Натисніть на цей текст🆕",
 
         "simple_gotos" :
@@ -61,11 +65,11 @@
                 "inline_buttons" : 
                 [
                     [ ["Замовити смаколики", "order"] ],
-                    [ ["Інфо", "info"] ]
-                ],
-                "simple_buttons" : "Почати"
+                    [ ["Інфо", "info_in_telegram"] ]
+                ]
             }
         },
+        
         "commands" :
         {
             "start" : 
@@ -77,35 +81,70 @@
                 "goto" : "start"
             }
         },
+        
         "simple_buttons" :
         [
             [ ["Почати", "start" ] ]
         ],
+        
         "simple_callbacks" :
         {
-            "info" :
+            "info_in_messenger" :
             {
-                "text" : "З додаткових питань пишіть кондитерці Марії @MariaYav"
+
+            },
+
+            "info_in_telegram" :
+            {
+                "text" : "З додаткових питань пишіть кондитерці Марії @MariaYav",
+                "inline_buttons":[[["Назад", "new_greeting"]]]
             },
 
             "order" :
             {
                 "description" : "Create buttons from DB items entries",
                 "sql" : "SELECT name, price FROM item ORDER BY price",
-                "script" : "show_items"
+                "func" : "show_items"
             },
 
             "new_greeting" :
             {
-
+                "text" : "Хочете смаколиків 🧞?",
+                "inline_buttons" : 
+                [
+                    [ ["Замовити смаколики", "order"] ],
+                    [ ["Інфо", "info_in_telegram"] ]
+                ]
             }
         },
+        
         "composite_callbacks" :
         {
             "show_item" : 
             {
                 "sql" : "SELECT name, description, photo, price FROM item WHERE name=%s",
-                "script" : "show_single_item"
+                "func" : "show_single_item"
+            },
+            "order" :
+            {
+                "funnel" : "order"
+            }
+        },
+        "funnels" :
+        {
+            "order_item" : 
+            {
+                "unknown_input" : "Не розумію 😕",
+                "retry_on_unknown" : true,
+                "text" : "Ок. Яку вагу бажаєте (від 2 кг до 102 кг 😊)? Наприклад, 3.25?",
+                "input_type" : "float",
+                "min_value" : 2,
+                "max_value" : 102,
+                "after_comma" : 2,
+                "next" : 
+                {
+                    "func" : ""
+                }
             }
         }
     }

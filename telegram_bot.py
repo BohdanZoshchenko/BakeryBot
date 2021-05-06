@@ -1,11 +1,11 @@
 from modules import *
-import telegram_bot_helper as bot_helper
+import telegram_json_helper as bot_helper
 from inspect import signature
 
 bot = bot_helper.bot
 bot_tree = bot_helper.bot_tree
 
-def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons, param = None):
+def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons = None, param = None):
     if goto == None:
         print("Goto is None")
         return
@@ -31,7 +31,7 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons, param = None):
             markup = inline_keyboard
 
         simple_keyboard = None
-        if not inline_keyboard and "simple_buttons" in gotos[goto].keys():
+        if not inline_keyboard and simple_buttons and "simple_buttons" in gotos[goto].keys():
             simple_keyboard = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
             rows = simple_buttons
             for row in rows:
@@ -53,8 +53,8 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons, param = None):
         sql_result = db_helper.do_sql(sql)
 
     # This block should be always in the end, before sending message     
-    if "script" in gotos[goto].keys():
-        func = gotos[goto]["script"]
+    if "func" in gotos[goto].keys():
+        func = gotos[goto]["func"]
                 
         script = "bot_helper." + func + str(signature(eval("bot_helper." + func)))
         execute_script(script, chat_id, sql, sql_result, param)
@@ -66,8 +66,11 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons, param = None):
     if text:
         bot.send_message(chat_id, text, reply_markup=markup)
 
+def handle_funnel(chat_id, funnel, stage = None, param = None):
+    print(funnel)
+
 def handle_unknown_input(chat_id):
-    bot.send_message(chat_id, bot_tree["user"]["unknown_input"])
+    handle_goto(chat_id, "unknown_input", gotos=bot_tree["user"])
 
 @bot.message_handler()
 def handle_user_messages_and_simple_buttons(message:types.Message):
@@ -76,8 +79,13 @@ def handle_user_messages_and_simple_buttons(message:types.Message):
     gotos:Dict = bot_tree["user"]["simple_gotos"]
     commands:Dict = bot_tree["user"]["commands"]
     simple_buttons = bot_tree["user"]["simple_buttons"]
+    funnels = bot_tree["user"]["funnels"]
 
     if message.text != None and message.text != "":
+        # funnel
+        if funnels and message.text in funnels.keys():
+            handle_funnel(chat_id, message.text)
+            return
         # command
         if message.text[0] == "/":
             if len(message.text) > 1:
@@ -89,32 +97,28 @@ def handle_user_messages_and_simple_buttons(message:types.Message):
                         if goto in gotos.keys():
                             handle_goto(chat_id, goto, gotos, simple_buttons)
                         else:
-                            handle_unknown_input(message)
+                            handle_unknown_input(chat_id)
                             print(goto + ":Goto undefined")
                     else:
-                        handle_unknown_input(message)
+                        handle_unknown_input(chat_id)
                         print(command + "Command has no goto")
                 else:
-                    handle_unknown_input(message)
+                    handle_unknown_input(chat_id)
                     print(command + ":Command undefined")
             else:
-                handle_unknown_input(message)
+                handle_unknown_input(chat_id)
                 print("No command body")
-        elif len(message.text) > 1:
-            # simple buttons
+        else:
+            # simple buttons and messages
             goto = None
-            stop = False
             for row in simple_buttons:
                 for button in row:
-                    if button[1] in gotos:
+                    if button[1] == message.text and button[1] in gotos.keys():
+                        print(message.text)
                         goto = button[1]
-                        stop = True
-                        break
-                if stop:
-                    break
-            handle_goto(chat_id, goto, gotos, simple_buttons)
-        else:
-            handle_unknown_input(message)
+                        handle_goto(chat_id, goto, gotos, simple_buttons)
+                        return
+            handle_unknown_input(chat_id)
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_inline_buttons_callbacks(callback:types.CallbackQuery): 
@@ -123,16 +127,31 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
     simple_callbacks:Dict = bot_tree["user"]["simple_callbacks"]
     composite_callbacks:Dict = bot_tree["user"]["composite_callbacks"]
     simple_buttons = bot_tree["user"]["simple_buttons"]
+    funnels = bot_tree["user"]["funnels"]
 
     callb = callback.data
-    print(callb)
+ 
+    if callb != "":
+        # funnel
+        if funnels:
+            print(1)
+            f_keys = funnels.keys()
+            for key in f_keys:
+                print(2)
+                print(callb)
+                #print(key)
+                if key in callb and callb[len(key)] == "%":
+                    param = callb[len(key)+1:len(callb)]
+                    handle_funnel(chat_id, key, None, param)
+                    return
+
     if callb in simple_callbacks.keys():
         handle_goto(chat_id, callb, simple_callbacks, simple_buttons)
     else:
         cc_keys = composite_callbacks.keys()
         for key in cc_keys:
-            if key in callb:
-                param = callb[len(key):len(callb)]
+            if key in callb and callb[len(key)] == "%":
+                param = callb[len(key)+1:len(callb)]
                 handle_goto(chat_id, key, composite_callbacks, simple_buttons, param)
                 return
         handle_unknown_input(chat_id)
