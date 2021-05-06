@@ -22,7 +22,7 @@ def show_single_item(chat_id, param, sql_result):
     text += str(item[1])+"\n" #description
     text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо") + "\n"#price
     text += "Унікальний декор за вашими побажаннями" + "\n"
-    text += "Мінімальна вага до замовлення *2 кг*"
+    text += "Мінімальна вага до замовлення 2 кг"
     markup = types.InlineKeyboardMarkup()
     order_button = types.InlineKeyboardButton(
             'Замовити', callback_data='order_item%' + param)

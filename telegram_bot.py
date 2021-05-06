@@ -1,5 +1,5 @@
 from modules import *
-import telegram_json_helper as bot_helper
+import funcs_telegram as bot_helper
 from inspect import signature
 
 bot = bot_helper.bot
@@ -52,6 +52,9 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons = None, param = No
             sql = sql.replace("%s", p)
         sql_result = db_helper.do_sql(sql)
 
+    if "goto" in gotos[goto].keys():
+        handle_goto(chat_id, gotos[goto]["goto"], gotos, simple_buttons, param)
+
     # This block should be always in the end, before sending message     
     if "func" in gotos[goto].keys():
         func = gotos[goto]["func"]
@@ -67,7 +70,13 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons = None, param = No
         bot.send_message(chat_id, text, reply_markup=markup)
 
 def handle_funnel(chat_id, funnel, stage = None, param = None):
-    print(funnel)
+    funnels = bot_tree["user"]["funnels"]
+    simple_buttons = bot_tree["user"]["simple_buttons"]
+    handle_goto(chat_id, funnel, funnels, simple_buttons, param)
+
+    funnel_branch = funnels[funnel]
+    if funnel_branch:
+        pass
 
 def handle_unknown_input(chat_id):
     handle_goto(chat_id, "unknown_input", gotos=bot_tree["user"])
@@ -119,6 +128,8 @@ def handle_user_messages_and_simple_buttons(message:types.Message):
                         handle_goto(chat_id, goto, gotos, simple_buttons)
                         return
             handle_unknown_input(chat_id)
+    else:
+        handle_unknown_input(chat_id)
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_inline_buttons_callbacks(callback:types.CallbackQuery): 
@@ -137,9 +148,6 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
             print(1)
             f_keys = funnels.keys()
             for key in f_keys:
-                print(2)
-                print(callb)
-                #print(key)
                 if key in callb and callb[len(key)] == "%":
                     param = callb[len(key)+1:len(callb)]
                     handle_funnel(chat_id, key, None, param)
@@ -156,6 +164,9 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
                 return
         handle_unknown_input(chat_id)
         print(callb + ": callback undefined")
+        return
+
+    handle_unknown_input(chat_id)
 
 def execute_script(script, chat_id, sql, sql_result, param):
     eval(script, None, locals())
