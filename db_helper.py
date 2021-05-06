@@ -38,16 +38,16 @@ def do_sql(sql:str, fields=None, records_count_to_fetch:int=None):
         return result
 
 def create_tables():
-    create_tables = bot_tree["params"]["db"]["create_tables"]
+    create_tables = bot_tree["database"]["create_tables"]
     for sql in create_tables:
         do_sql(sql)
 
 bot_tree = json_helper.bot_json_to_obj()
 if "HEROKU" in list(os.environ.keys()):
-    conn_params = bot_tree["params"]["db"]["production"]
+    conn_params = bot_tree["params"]["database"]["production"]
     print("Production DB selected. Be careful with data changing!")
 else:
-    conn_params = bot_tree["params"]["db"]["development"]
+    conn_params = bot_tree["params"]["database"]["development"]
     print("Development DB selected.")
 
 create_tables()

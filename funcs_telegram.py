@@ -27,7 +27,7 @@ def show_single_item(chat_id, param, sql_result):
             'Замовити', callback_data='order_item%' + param)
     markup.add(order_button)
     info_button = types.InlineKeyboardButton(
-            'Інфо', callback_data='info')
+            'Інфо', callback_data='info_in_telegram')
     back_button = types.InlineKeyboardButton(
             'Назад', callback_data='new_greeting')
     markup.row(info_button, back_button)
