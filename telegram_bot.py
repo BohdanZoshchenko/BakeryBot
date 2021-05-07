@@ -224,7 +224,9 @@ def play_funnel_level(chat_id, state, msg_text=None, call_data=None, resend=Fals
             max = level_content["max"]
         if type != None:
             valid_info = is_value_valid(msg_text, level_content["input_type"], min, max)
-            print(valid_info)
+            if valid_info != "ok":
+                
+                return
             
         if "text" in level_content:
             bot.send_message(chat_id, level_content["text"], parse_mode="Markdown")
