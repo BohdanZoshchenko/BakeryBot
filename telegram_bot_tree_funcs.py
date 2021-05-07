@@ -33,6 +33,14 @@ def show_single_item(chat_id, param, sql_result):
     markup.row(info_button, back_button)
     bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown", reply_markup=markup)
 
+def order_item1(chat_id, state):
+    level = state[0]
+    funnel = state[1]
+    params = state[2]
+    name = params[0]
+    text ="*"+name+"*\nЧудово! Яку вагу бажаєте (від 2 до 102 кілограмів 😊)? Наприклад, 3.25"
+    bot.send_text(chat_id, text, parse_mode="Markdown")
+
 def order_funnel_on_type_kg(input, param):
     out = "\n" + str(input) + " кг * " + str(param) + " = " + str(round(input*param, 2)) + " ГРН"
     print(out)

@@ -7,7 +7,7 @@
 
         "create_tables" :
         [
-            "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, state varchar(450) NULL, PRIMARY KEY (chat_id))",
+            "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, level varchar NULL, funnel varchar NULL, params varchar[] NULL, PRIMARY KEY (chat_id))",
 
             "CREATE TABLE IF NOT EXISTS category (price integer NOT NULL DEFAULT '450', PRIMARY KEY (price))",
     
@@ -16,8 +16,8 @@
             "CREATE TABLE IF NOT EXISTS client_order (client_id integer NOT NULL, description varchar NOT NULL, photo bytea)"
         ],
 
-        "set_user_state" : "INSERT INTO client VALUES(%s,%s) ON CONFLICT (chat_id) DO UPDATE SET state = %s",
-        "get_user_state" : "SELECT state FROM client WHERE chat_id = %s"
+        "set_user_state" : "INSERT INTO client VALUES(%s,%s,%s,%s) ON CONFLICT (chat_id) DO UPDATE SET level = %s, funnel = %s, params = %s",
+        "get_user_state" : "SELECT level, funnel, params FROM client WHERE chat_id = %s"
     },
 
     "params":
@@ -142,22 +142,25 @@
         },
         "funnels" :
         {
-            "order_item" : 
+            "order_item" :
             {
-                "text" : "Чудово! Яку вагу бажаєте (від 2 до 102 кілограмів 😊)? Наприклад, 3.25",
-                "unknown_input" : "Не розумію 😕",
-                "less_than_min" : "Замала вага. Спробуйте ще",
-                "more_than_max" : "Дуже велика вага. Спробуйте ще",
-                "type_mismatch" : "Я бот, тому зрозумію тільки число. Наприклад, 2.5",
-                "retry_on_unknown" : true,
-                "input_type" : "float",
-                "min" : 2,
-                "max" : 102,
-                "after_comma" : 2,
-                "next" : 
+                "1" :
                 {
-                    "text" : "Добре!",
-                    "func" : ""
+                    "unknown_input" : "Не розумію 😕",
+                    "less_than_min" : "Замала вага. Спробуйте ще",
+                    "more_than_max" : "Дуже велика вага. Спробуйте ще",
+                    "type_mismatch" : "Я бот, тому зрозумію тільки число. Наприклад, 2.5",
+                    "retry_on_unknown" : true,
+                    "input_type" : "float",
+                    "min" : 2,
+                    "max" : 102,
+                    "after_comma" : 2,
+                    "func" : "order_item1"
+                },
+
+                "2" : 
+                {
+                    "text" : "Добре!"
                 }
             }
         }

@@ -1,5 +1,6 @@
+from os import stat
 from modules import *
-import funcs_telegram as bot_helper
+import telegram_bot_tree_funcs as bot_helper
 from inspect import signature
 
 bot = bot_helper.bot
@@ -59,18 +60,18 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons = None, param = No
     # This block should be always in the end, before sending message     
     if "func" in gotos[goto].keys():
         func = gotos[goto]["func"]
-                
+        state = get_user_state(chat_id)
         script = "bot_helper." + func + str(signature(eval("bot_helper." + func)))
-        execute_script(script, chat_id, sql, sql_result, param)
+        execute_script(script, chat_id, sql, sql_result, param, state)
                 
         return
     # Block end
 
     # If there was a script, this message will not be sent 
     if text:
-        bot.send_message(chat_id, text, reply_markup=markup)
+        bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
 
-def handle_funnel(chat_id, call_info=None, msg_text=None, level = 0, param = None):
+def handle_funnel(chat_id, call_info=None, msg_text=None, param = None):
  
     key = None
     if call_info!=None:
@@ -83,9 +84,14 @@ def handle_funnel(chat_id, call_info=None, msg_text=None, level = 0, param = Non
     if not state:
         if not key:
             return
-        state = "0%" + key
+        state = []
+        state.append("0")
+        state.append(key)
     if param:
-        state += "%" + param
+        if len(state) < 3:
+            state.append([param])
+        else:
+            state[2].append(param)
     
     set_user_state(chat_id, state)
     play_funnel_level(chat_id, state, msg_text, call_info)
@@ -96,24 +102,24 @@ def handle_unknown_input(chat_id):
 @bot.message_handler()
 def handle_user_messages_and_simple_buttons(message:types.Message):
     chat_id = message.chat.id
-    print(get_user_state(chat_id))
+
+#############REMOVE
+    #set_user_state(chat_id, None)
+
     gotos:Dict = bot_tree["main"]["simple_gotos"]
     commands:Dict = bot_tree["main"]["commands"]
     simple_buttons = bot_tree["main"]["simple_buttons"]
+    funnels = bot_tree["main"]["funnels"]
 
     state = get_user_state(chat_id)
-    parse = None
-    if state:
-        parse = parse_state(state)
+
 
     if message.text != None and message.text != "":
         # funnel
-        l = 0
-        if parse:
-            l = parse[0]
-        if l > 0:
-            handle_funnel(chat_id, msg_text=message.text, level=l)
-            return
+        if state:
+            for k in funnels.keys():
+                handle_funnel(chat_id, msg_text=message.text)
+                return
         # command
         if message.text[0] == "/":
             if len(message.text) > 1:
@@ -161,7 +167,12 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
     funnels = bot_tree["main"]["funnels"]
 
     callb = callback.data
+
     state = get_user_state(chat_id)
+    
+    if state:
+        on_user_distracted(chat_id)
+        return
 
     if callb != "":
         # funnel
@@ -171,11 +182,8 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
                 for key in f_keys:
                     if key in callb and callb[len(key)] == "%" and callb.count('%') == 1:
                         p = callb[len(key)+1:len(callb)]
-                        l = 0
-                        handle_funnel(chat_id, call_info=key, param=p, level=l)
+                        handle_funnel(chat_id, call_info=key, param=p)
                         return
-            else:
-                on_user_distracted(chat_id)
 
         if callb in simple_callbacks.keys():
             handle_goto(chat_id, callb, simple_callbacks, simple_buttons)
@@ -188,39 +196,29 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
                     handle_goto(chat_id, key, composite_callbacks, simple_buttons, param)
                     return
 
-def execute_script(script, chat_id, sql, sql_result, param):
+def execute_script(script, chat_id, sql, sql_result, param, state):
     eval(script, None, locals())
 
 def set_user_state(chat_id, state):
-    db_helper.do_sql(bot_tree["database"]["set_user_state"], [chat_id, state, state])
+    level = state[0]
+    funnel = state[1]
+    params = state[2]
+    db_helper.do_sql(bot_tree["database"]["set_user_state"], [chat_id, level, funnel, params, level, funnel, params])
 
 def get_user_state(chat_id):
     sql_result = db_helper.do_sql(bot_tree["database"]["get_user_state"], [chat_id])
     if len(sql_result) == 0:
         return None
-    return sql_result[0][0]
-
-def parse_state(state:str):
-    if not state:
-        return None
-    if state.count("%") < 2:
-        return None
-    level_str = state[0:state.find("%")]
-    level = int( level_str )
-    tmp = state[state.find("%")+1:len(state)]
-    funnel = tmp[0:tmp.find("%")]
-    tmp = tmp[tmp.find("%")+1:len(tmp)]
-    param = tmp
-    return level, funnel, param
+    return sql_result[0][0], sql_result[0][1], sql_result[0][2]
 
 def play_funnel_level(chat_id, state, msg_text=None, call_data=None):
-    parse = parse_state(state)
-    if not parse:
+    if not state:
         return
-    level, funnel, param = parse
+    level, funnel, params = state
+    level = int(level)
     level_content = get_funnel_level_content(chat_id, state)
     if msg_text:
-        #print(msg_text)
+        print(state)
         type = None
         if "input_type" in level_content.keys(): 
             type = level_content["input_type"]
@@ -235,25 +233,25 @@ def play_funnel_level(chat_id, state, msg_text=None, call_data=None):
             #print(valid_info)
 
     if "text" in level_content:
-        bot.send_message(chat_id, level_content["text"])
+        bot.send_message(chat_id, level_content["text"], parse_mode="Markdown")
 
-    if "next" in level_content.keys():   
-        if isinstance(level_content["next"], dict):
-            level += 1
-            state = str(level) + "%" + funnel + "%" + param
+    if str(level+1) in level_content.keys():   
+        level += 1
+        state = [str(level), funnel, params]
 
     set_user_state(chat_id, state)
 
 def get_funnel_level_content(chat_id, state):
-    level, funnel, param = parse_state(state)
+    level, funnel, params = state
+    level = int(level)
     level_content = bot_tree["main"]["funnels"]
     #print(level)
-    for i in range(0, level+1):
+    for i in range(0, int(level)+1):
         if i == 0:
             level_content = level_content[funnel]
         else:
-            if "next" in level_content:
-                level_content = level_content["next"]
+            if str(level+1) in level_content:
+                level_content = level_content[str(level+1)]
             else:
                 level_content = None
                 set_user_state(chat_id, None)
@@ -279,8 +277,13 @@ def is_value_valid(value, type:str, min=None, max=None):
 
 def on_user_distracted(chat_id): 
     text = bot_tree["main"]["on_user_distracted"]
-    last_msg_id
-    bot.send_message(chat_id, text)
+    state = get_user_state(chat_id)
+    if not state:
+        return False
+    l, funnel, p = state
+    bot.send_message(chat_id, text, parse_mode="Markdown")
+    handle_funnel(chat_id, msg_text = funnel, call_info=funnel)
+    return True
 
 def run():
     if "HEROKU" in list(os.environ.keys()):
