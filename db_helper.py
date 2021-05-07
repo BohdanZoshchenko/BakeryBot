@@ -17,6 +17,7 @@ def do_sql(sql:str, fields=None, records_count_to_fetch:int=None):
         with conn.cursor() as cursor:
             #print("DB: cursor created")
             if fields != None:
+                print(fields[0])
                 cursor.execute(sql, fields)
             else:
                 cursor.execute(sql)

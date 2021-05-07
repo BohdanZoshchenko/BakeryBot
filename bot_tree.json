@@ -4,7 +4,7 @@
 
     "database" : 
     {
-
+        "drop_client_table" : "DROP TABLE client",
         "create_tables" :
         [
             "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, level varchar NULL, funnel varchar NULL, params varchar[] NULL, PRIMARY KEY (chat_id))",
@@ -146,20 +146,19 @@
             {
                 "1" :
                 {
-                    "unknown_input" : "Не розумію 😕",
-                    "less_than_min" : "Замала вага. Спробуйте ще",
-                    "more_than_max" : "Дуже велика вага. Спробуйте ще",
-                    "type_mismatch" : "Я бот, тому зрозумію тільки число. Наприклад, 2.5",
-                    "retry_on_unknown" : true,
-                    "input_type" : "float",
-                    "min" : 2,
-                    "max" : 102,
-                    "after_comma" : 2,
                     "func" : "order_item1"
                 },
 
                 "2" : 
                 {
+                    "unknown_input" : "Не розумію 😕",
+                    "less_than_min" : "Замала вага. Спробуйте ще",
+                    "more_than_max" : "Дуже велика вага. Спробуйте ще",
+                    "type_mismatch" : "Я бот, тому зрозумію тільки число. Наприклад, 2.5",
+                    "input_type" : "float",
+                    "min" : 2,
+                    "max" : 102,
+                    "after_comma" : 2,
                     "text" : "Добре!"
                 }
             }
