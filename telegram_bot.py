@@ -72,7 +72,6 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons = None, param = No
         bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
 
 def handle_funnel(chat_id, call_info=None, msg_text=None, param = None):
- 
     key = None
     if call_info!=None:
         key = call_info
@@ -170,7 +169,7 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
 
     state = get_user_state(chat_id)
     
-    if state:
+    if state and state[0]:
         on_user_distracted(chat_id)
         return
 
@@ -200,6 +199,8 @@ def execute_script(script, chat_id, sql, sql_result, param, state):
     eval(script, None, locals())
 
 def set_user_state(chat_id, state):
+    if state == None:
+        state = [None, None, None]
     level = state[0]
     funnel = state[1]
     params = state[2]
@@ -212,32 +213,39 @@ def get_user_state(chat_id):
     return sql_result[0][0], sql_result[0][1], sql_result[0][2]
 
 def play_funnel_level(chat_id, state, msg_text=None, call_data=None):
+    print(state)
     if not state:
         return
     level, funnel, params = state
-    level = int(level)
-    level_content = get_funnel_level_content(chat_id, state)
-    if msg_text:
-        print(state)
-        type = None
-        if "input_type" in level_content.keys(): 
-            type = level_content["input_type"]
-        min = None
-        if "min" in level_content.keys():
-            min = level_content["min"]
-        max = None
-        if "max" in level_content.keys():
-            max = level_content["max"]
-        if type != None:
-            valid_info = is_value_valid(msg_text, level_content["input_type"], min, max)
-            #print(valid_info)
+    if level:
+        level = int(level)
+        level_content = get_funnel_level_content(chat_id, state)
+        if msg_text:
+            print(state)
+            type = None
+            if "input_type" in level_content.keys(): 
+                type = level_content["input_type"]
+            min = None
+            if "min" in level_content.keys():
+                min = level_content["min"]
+            max = None
+            if "max" in level_content.keys():
+                max = level_content["max"]
+            if type != None:
+                valid_info = is_value_valid(msg_text, level_content["input_type"], min, max)
+                #print(valid_info)
 
-    if "text" in level_content:
-        bot.send_message(chat_id, level_content["text"], parse_mode="Markdown")
+        if "text" in level_content:
+            bot.send_message(chat_id, level_content["text"], parse_mode="Markdown")
 
-    if str(level+1) in level_content.keys():   
-        level += 1
-        state = [str(level), funnel, params]
+        if "func" in level_content:
+            s = state
+            print(s)
+            execute_script(level_content["func"], chat_id, sql=None, sql_result=None, param=None, state=s)
+
+        if str(level+1) in level_content.keys():   
+            level += 1
+            state = [str(level), funnel, params]
 
     set_user_state(chat_id, state)
 
