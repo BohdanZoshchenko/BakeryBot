@@ -199,7 +199,6 @@ def execute_script(script, chat_id, sql, sql_result, param, state):
     eval(script, None, locals())
 
 def set_user_state(chat_id, state):
-    print("set")
     if state == None:
         state = [None, None, None]
     level = state[0]
@@ -208,7 +207,6 @@ def set_user_state(chat_id, state):
     db_helper.do_sql(bot_tree["database"]["set_user_state"], [chat_id, level, funnel, params, level, funnel, params])
 
 def get_user_state(chat_id):
-    print("get")
     sql_result = db_helper.do_sql(bot_tree["database"]["get_user_state"], [chat_id])
     if len(sql_result) == 0:
         return None
