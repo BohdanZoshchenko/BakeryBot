@@ -13,14 +13,14 @@ funnels = bot_tree["main"]["funnels"]
 
 def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons = None, param = None, message = None):
     if goto == None:
-        #print("Goto is None")
+        #("Goto is None")
         return
 
     text = None
     if "text" in gotos[goto].keys():
         text = gotos[goto]["text"]
     else:
-        #print(goto + ": Goto has no text message")
+        #(goto + ": Goto has no text message")
         pass
 
     markup = None
@@ -75,36 +75,40 @@ def handle_goto(chat_id, goto:str, gotos:Dict, simple_buttons = None, param = No
 def start_funnel(chat_id, call_info=None, msg_text=None, param = None):
     state = "0", call_info, param
     set_user_state(chat_id, state)
-    play_funnel_level(chat_id, state, msg_text, call_info)
-
-def handle_funnel(chat_id, msg_text):
-    state = get_user_state(chat_id)
-    state[2].append(msg_text)
-    set_user_state(chat_id, state)
-    return play_funnel_level(chat_id, state, msg_text)
+    play_funnel_level(chat_id, state, msg_text)
 
 def handle_unknown_input(chat_id):
     handle_goto(chat_id, "unknown_input", gotos=bot_tree["main"])
 
-@bot.message_handler()
+@bot.message_handler(content_types=)
 def handle_user_messages_and_simple_buttons(message:types.Message):
     chat_id = message.chat.id
-
+    
     gotos:Dict = bot_tree["main"]["simple_gotos"]
     commands:Dict = bot_tree["main"]["commands"]
     simple_buttons = bot_tree["main"]["simple_buttons"]
     funnels = bot_tree["main"]["funnels"]
 
     if message.text != None and message.text != "":
-        state =  get_user_state(chat_id)
-        if state is not None and state[0] is not None and int(state[0]) > 0: 
-            if handle_funnel(chat_id, message.text):
-                return
         # funnel
-        for k in funnels.keys():
-            if k == message.text:
-                if play_funnel_level(chat_id, get_user_state(chat_id), message.text, call_data=None):
-                    return
+        state =  get_user_state(chat_id)
+
+        if state is not None and state != [None, None, None]:
+            if not play_funnel_level(chat_id, get_user_state(chat_id), message.text):
+                while True:
+                    state = get_user_state(chat_id)
+                    if state is None:
+                        break
+                    if state[2] is None:
+                        break
+                    
+                    param = None
+                    if play_funnel_level(chat_id, state, param):
+                        break
+                    if state[0] == "0":
+                        break                
+            return
+            
         # command
         if message.text[0] == "/":
             if len(message.text) > 1:
@@ -118,16 +122,16 @@ def handle_user_messages_and_simple_buttons(message:types.Message):
                             handle_goto(chat_id, goto, gotos, simple_buttons, message = m)
                         else:
                             handle_unknown_input(chat_id)
-                            #print(goto + ":Goto undefined")
+                            #(goto + ":Goto undefined")
                     else:
                         handle_unknown_input(chat_id)
-                        #print(command + "Command has no goto")
+                        #(command + "Command has no goto")
                 else:
                     handle_unknown_input(chat_id)
-                    #print(command + ":Command undefined")
+                    #(command + ":Command undefined")
             else:
                 handle_unknown_input(chat_id)
-                #print("No command body")
+                #("No command body")
         else:
             # simple buttons and messages
             goto = None
@@ -148,22 +152,16 @@ def handle_inline_buttons_callbacks(callback:types.CallbackQuery):
 
     callb = callback.data
 
-    state = get_user_state(chat_id)
-
     if callb != "":
         # funnel entry
         f_keys = funnels.keys()
         for key in f_keys:
             if key in callb and callb[len(key)] == "%":
                 p = callb[len(key)+1:len(callb)]
-                if state is not None and state[0] is not None and state[0] != "0":
-                    on_user_distracted(chat_id, msg_txt=None, call_info=callb)
-                    return
                 start_funnel(chat_id, call_info=key, param=[p])
                 return
-            elif state is not None and state[0] is not None and state[0] != "0":
-                    on_user_distracted(chat_id, msg_txt=None, call_info=callb)
-                    return
+            else:
+                set_user_state(chat_id, None)
 
         if callb in simple_callbacks.keys():
             handle_goto(chat_id, callb, simple_callbacks, simple_buttons)
@@ -193,94 +191,138 @@ def get_user_state(chat_id):
         return None
     return [sql_result[0][0], sql_result[0][1], sql_result[0][2]]
 
-def play_funnel_level(chat_id, state, msg_text=None, call_data=None, resend=False):
-    if state is None:
+def play_funnel_level(chat_id, state, msg_text=None):
+    if state is None or state == [None, None, None]:
         return False
-    if msg_text is not None:
-        if len(state) < 3 or state[2] is None or state[2]==[]:
-            state.append([msg_text])
-        else:
-            state[2].append(msg_text)
-
+    x = None
     level, funnel, params = state
-    if level is not None and (int(level) == 0 or msg_text is not None or resend):
+    if level is not None and (int(level) == 0 or msg_text is not None):
         level = int(level)
-        if not resend:
-            level += 1
-        state = str(level), funnel, params
-
         level_content = get_funnel_level_content(chat_id, state)
         if level_content is None:
             return False
-        
-        type = None
-        if "input_type" in level_content.keys(): 
-            type = level_content["input_type"]
-        min = None
-        if "min" in level_content.keys():
-            min = level_content["min"]
-        max = None
-        if "max" in level_content.keys():
-            max = level_content["max"]
-        if type != None:
-            valid_info = is_value_valid(msg_text, level_content["input_type"], min, max)
-            if valid_info != "ok":
-                
-                return
-            
-        if "text" in level_content:
+        if msg_text is not None:
+            valid_info = is_value_valid(msg_text, level_content)
+            print(valid_info)
+            if valid_info[0] != "ok":
+                on_wrong_input(chat_id, valid_info[0], level_content)
+                state[0] = str(int(state[0])-1)
+                set_user_state(chat_id, state)
+                return False
+            else:
+                print(level_content.keys())
+                x = valid_info[1]
+                if type(x)==float and "after_comma" in level_content.keys():
+                    x = round(x, level_content["after_comma"])
+                    
+                    print("TWIST")
+                x = str(x)
+                if len(state) < 3 or state[2] is None or state[2]==[]:
+                    state.append([x])
+                else:
+                    state[2].append(x)
+
+        if "text" in level_content.keys():
             bot.send_message(chat_id, level_content["text"], parse_mode="Markdown")
-        
-        if "func" in level_content:
+
+        if "func" in level_content.keys():
             s = state
             func = level_content["func"]
             script = "bot_helper." + func + str(signature(eval("bot_helper." + func)))
-            execute_script(script, chat_id, sql=None, sql_result=None, param=None, state=s)
+            sql = None
+            if "sql" in level_content.keys():
+                sql = level_content["sql"]
+            if x is not None:
+                p = str(x)
+            else:
+                p=params[len(params)-1]
+            execute_script(script, chat_id, sql, sql_result=None, param=p, state=s)
 
-        next_level = level + 1
-        next_state = [next_level, funnel, params]
-        next_level_content = get_funnel_level_content(chat_id, next_state)
-        if next_level_content is None:
+        level += 1
+
+        state = to_state(level, funnel, params)
+        
+        if get_funnel_level_content(chat_id, state) is None:
             state = None
+
         set_user_state(chat_id, state)
 
         return True
     else:
         return False
 
+def error_exists(error:str, level_content):
+    for error in level_content["errors"].keys():
+        return True
+    
+    return False
+
+def on_wrong_input(chat_id, error:str, level_content):
+    text = bot_tree["main"]["funnel_unknown_input"]
+    x = "errors" in level_content.keys()
+
+    if x and error_exists(error, level_content):
+        text = level_content["errors"][error]
+    bot.send_message(chat_id, text, parse_mode="Markdown")
+
+def to_state(level, funnel, params):
+    return [str(level), funnel, params]
+
 def get_funnel_level_content(chat_id, state):
+    if state is None:
+        return None
     level, funnel, params = state
     level = int(level)
     level_content = bot_tree["main"]["funnels"]
-    if level == 0:
-        level_content = level_content[funnel]
+    if str(level) in level_content[funnel].keys():
+        level_content = level_content[funnel][str(level)]
+        set_user_state(chat_id, state)
     else:
-        if str(level) in level_content[funnel].keys():
-            level_content = level_content[funnel][str(level)]
-            set_user_state(chat_id, state)
-        else:
-            level_content = None
-            set_user_state(chat_id, None)
+        level_content = None
+        set_user_state(chat_id, None)
 
     return level_content
 
-def is_value_valid(value, type:str, min=None, max=None):
+def is_value_valid(value, level_content):
+    type = None
+    if "input_type" in level_content.keys():
+        type = level_content["input_type"]
+    min = None
+    if "min" in level_content.keys():
+        min = level_content["min"]
+    max = None
+    if "max" in level_content.keys():
+        max = level_content["max"]
+    if type is None:
+        return "ok", value
     x = None
-    try:
-        eval("x="+type+"("+value+")", globals(), locals())
-    except:
-        return "type_mismatch"
+    type = eval(type)
+    x = convert(value, type)
+    if not isinstance(x, type) or x==False:
+        return "type_mismatch", x
     if isinstance(x, str):
         if min != None and len(x) < min:
-            return "too_little"
+            return "too_little", x
         if max != None and len(x) > max:
-            return "too_big"
+            return "too_big", x
     else:
         if min != None and x < min:
-            return "too_little"
+            return "too_little", x
         if max != None and x > max:
-            return "too_big"
-    return "ok"
+            return "too_big", x
+    return "ok", x
+
+def convert(value, type):
+    value = str(value)
+    if type is float:
+        print(float)
+        value = value.replace(",", ".")
+    try:
+        x = type(value)
+        print(x)
+        return x
+    except ValueError:
+        return False
 
 def on_user_distracted(chat_id, msg_txt, call_info): 
     text = bot_tree["main"]["on_user_distracted"]

@@ -33,14 +33,41 @@ def show_single_item(chat_id, param, sql_result):
     markup.row(info_button, back_button)
     bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown", reply_markup=markup)
 
-def order_item1(chat_id, state):
+def order_item_start(chat_id, state):
     level = state[0]
     funnel = state[1]
     params = state[2]
     name = params[0]
-    text ="*"+name+"*\nЧудово! Яку вагу бажаєте (від 2 до 102 кілограмів 😊)? Наприклад, 3.25"
+    text ="*"+name+"*\nЯку вагу бажаєте (від 2 до 102 кілограмів 😊)? Наприклад, 3.25"
     bot.send_message(chat_id, text, parse_mode="Markdown")
 
-def order_funnel_on_type_kg(input, param):
-    out = "\n" + str(input) + " кг * " + str(param) + " = " + str(round(input*param, 2)) + " ГРН"
-    print(out)
+def order_item_mass(chat_id, state, sql, param):
+    level = state[0]
+    funnel = state[1]
+    params = state[2]
+    name = params[0]
+    mass = param
+
+    price = db_helper.do_sql(sql, [name])[0][0]
+    sum = float(price)*float(mass)
+    sum = price_format(sum)
+
+    text = "*"+ name+"\n"
+    text+= str(mass) + " кг x " + str(price) + " = " 
+    text+= str(sum) + " ГРН*"
+    text+="\nЧудово. Тепер напишіть побажання щодо смаколика. Наприклад, про начинку і декор або дату бронювання"
+    bot.send_message(chat_id, text, parse_mode="Markdown")
+
+def order_item_description(chat_id, state):
+    bot.send_message(chat_id, "Супер! Наостанок надішліть фото чи інше зображення, за яким можна зробити декор.")
+
+def price_format(price):
+    price = float(price)
+    price = round(price, 2)
+    if not "." in str(price):
+        return price
+    price = str(price).split('.')
+    while len(price[1]) < 2:
+        price[1] += "0"
+    price = price[0] + "." + price[1]
+    return price

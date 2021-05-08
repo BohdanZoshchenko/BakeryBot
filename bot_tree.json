@@ -4,7 +4,7 @@
 
     "database" : 
     {
-        "drop_client_table" : "DROP TABLE client",
+        "d":"DROP TABLE client",
         "create_tables" :
         [
             "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, level varchar NULL, funnel varchar NULL, params varchar[] NULL, PRIMARY KEY (chat_id))",
@@ -64,6 +64,9 @@
             "text" : "Я вас не розумію😕 Спробуйте якось інакше.",
             "inline_buttons" : [[["Спробувати", "new_greeting"]]]
         },
+
+        "funnel_unknown_input" : "Сталась якась помилка😕 Давайте спробуємо ще",
+
         "recent_post_title" : "📰Свіжа новина📰\n🆕Натисніть на цей текст🆕",
         "on_user_distracted" : "Щось ми відволіклися 😅",
 
@@ -144,22 +147,34 @@
         {
             "order_item" :
             {
-                "1" :
+                "0" :
                 {
-                    "func" : "order_item1"
+                    "func" : "order_item_start"
                 },
-
-                "2" : 
+                "1" : 
                 {
-                    "unknown_input" : "Не розумію 😕",
-                    "less_than_min" : "Замала вага. Спробуйте ще",
-                    "more_than_max" : "Дуже велика вага. Спробуйте ще",
-                    "type_mismatch" : "Я бот, тому зрозумію тільки число. Наприклад, 2.5",
+                    "sql" : "SELECT price FROM item WHERE name=%s",
+                    "func" : "order_item_mass",
+
+                    "errors":
+                    {
+                        "too_little" : "Замала вага. Спробуйте ще",
+                        "too_big" : "Дуже велика вага. Спробуйте ще",
+                        "type_mismatch" : "Я бот, тому зрозумію тільки число. Наприклад, 2.5"
+                    },
+                    
                     "input_type" : "float",
                     "min" : 2,
                     "max" : 102,
-                    "after_comma" : 2,
-                    "text" : "Добре!"
+                    "after_comma" : 2
+                },
+                "2" :
+                {
+                    "func" : "order_item_description"
+                },
+                "3" :
+                {
+                    "text" : "Супер. Ваше замовлення прийнято!"
                 }
             }
         }
