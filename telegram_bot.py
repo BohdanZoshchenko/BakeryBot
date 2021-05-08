@@ -80,7 +80,7 @@ def start_funnel(chat_id, call_info=None, msg_text=None, param = None):
 def handle_unknown_input(chat_id):
     handle_goto(chat_id, "unknown_input", gotos=bot_tree["main"])
 
-@bot.message_handler(content_types=)
+@bot.message_handler()
 def handle_user_messages_and_simple_buttons(message:types.Message):
     chat_id = message.chat.id
     
@@ -108,7 +108,7 @@ def handle_user_messages_and_simple_buttons(message:types.Message):
                     if state[0] == "0":
                         break                
             return
-            
+
         # command
         if message.text[0] == "/":
             if len(message.text) > 1:
