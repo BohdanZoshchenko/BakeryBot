@@ -101,7 +101,7 @@ def handle_user_messages_and_simple_buttons(message: types.Message):
 
     if state is not None and state != [None, None, None]:
         param = message
-        if not play_funnel_level(chat_id, get_user_state(chat_id), param):
+        while not play_funnel_level(chat_id, get_user_state(chat_id), param):
             state = get_user_state(chat_id)
             level, funnel, params = state
             
