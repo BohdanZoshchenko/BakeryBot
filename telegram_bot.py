@@ -101,16 +101,17 @@ def handle_user_messages_and_simple_buttons(message: types.Message):
 
     if state is not None and state != [None, None, None]:
         param = message
+        i = 0
         while not play_funnel_level(chat_id, get_user_state(chat_id), param):
+            if i > 0:
+                break
             state = get_user_state(chat_id)
             level, funnel, params = state
             
             if len(params)-1 >= 0:
                 param = params[len(params)-1]
-            else:
-                param = None
             set_user_state(chat_id,state)
-            play_funnel_level(chat_id, get_user_state(chat_id), param)
+            i += 1
         return
 
     if message.text is not None and message.text != "":
@@ -239,6 +240,7 @@ def play_funnel_level(chat_id, state, msg=None):
 
         if msg_content is not None:
             valid_info = bot_helper.is_value_valid(msg, level_content)
+            print(valid_info)
             if valid_info[0] != "ok":
                 print("Not ok")
                 on_wrong_input(chat_id, valid_info[0], level_content)

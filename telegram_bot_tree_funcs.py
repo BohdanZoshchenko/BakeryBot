@@ -7,14 +7,16 @@ bot = telebot.TeleBot(bot_tree["params"]["telegram_token"])
 
 def is_value_valid(msg, level_content):
     type = None
-    msg_type = msg.content_type
-    value = eval("msg."+msg_type, globals(), locals())
+    if not isinstance(msg, types.Message):
+        msg_type = type(msg)
+        value = msg
+    else:
+        msg_type = msg.content_type
+        value = eval("msg." + msg_type, globals(), locals())
     if "input_type" in level_content.keys():
         type = level_content["input_type"]
-        if type == "image":
-            type = "photo"
-        if type == "text":
-            type = "str"
+        if type not in ["float", "int", "byte"]:
+            return "ok", value
     else:
         return "ok", value
     min = None
@@ -27,7 +29,7 @@ def is_value_valid(msg, level_content):
     x = None
     type = eval(type)
     x = convert(value, type)
-    if not isinstance(x, type) or x==False:
+    if not isinstance(x, type) or not x:
         return "type_mismatch", x
     if isinstance(x, str):
         if min != None and len(x) < min:
