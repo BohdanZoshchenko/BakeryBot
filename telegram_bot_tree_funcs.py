@@ -5,6 +5,60 @@ bot_tree = json_helper.bot_json_to_obj()
 
 bot = telebot.TeleBot(bot_tree["params"]["telegram_token"])
 
+def is_value_valid(msg, level_content):
+    type = None
+    if "input_type" in level_content.keys():
+        type = level_content["input_type"]
+    if type == "image" or type == "photo":
+        if msg.content_type != "photo":
+            print("MISMATCH")
+            return "type_mismatch", msg
+        else:
+            value = msg.photo[-1]
+            return "ok", value
+    if msg is str:
+        value = msg
+    else:
+        value = msg.text
+    if type == "text":
+        type = "str"
+    min = None
+    if "min" in level_content.keys():
+        min = level_content["min"]
+    max = None
+    if "max" in level_content.keys():
+        max = level_content["max"]
+    if type is None:
+        return "ok", value
+    x = None
+    type = eval(type)
+    x = convert(value, type)
+    if not isinstance(x, type) or x==False:
+        return "type_mismatch", x
+    if isinstance(x, str):
+        if min != None and len(x) < min:
+            return "too_little", x
+        if max != None and len(x) > max:
+            return "too_big", x
+    else:
+        if min != None and x < min:
+            return "too_little", x
+        if max != None and x > max:
+            return "too_big", x
+    return "ok", x
+
+
+def convert(value, type):
+    value = str(value)
+    if type is float:
+        value = value.replace(",", ".")
+    try:
+        x = type(value)
+        return x
+    except ValueError:
+        return False
+
+
 def show_items(chat_id, sql_result):
     items = sql_result
     markup = types.InlineKeyboardMarkup()
@@ -60,6 +114,10 @@ def order_item_mass(chat_id, state, sql, param):
 
 def order_item_description(chat_id, state):
     bot.send_message(chat_id, "Супер! Наостанок надішліть фото чи інше зображення, за яким можна зробити декор.")
+
+def order_item_image(chat_id):
+    #bot.send_photo(chat_id)
+    bot.send_message(chat_id, "ok")
 
 def price_format(price):
     price = float(price)

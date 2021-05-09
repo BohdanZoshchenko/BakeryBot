@@ -4,7 +4,7 @@
 
     "database" : 
     {
-        "d":"DROP TABLE client",
+        "delete_client_table" : "DROP TABLE client",
         "create_tables" :
         [
             "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, level varchar NULL, funnel varchar NULL, params varchar[] NULL, PRIMARY KEY (chat_id))",
@@ -170,11 +170,25 @@
                 },
                 "2" :
                 {
-                    "func" : "order_item_description"
+                    "func" : "order_item_description",
+
+                    "errors":
+                    {
+                        "type_mismatch" : "Я бот, тому зрозумію тільки текст."
+                    },
+                    
+                    "input_type" : "str"
                 },
                 "3" :
                 {
-                    "text" : "Супер. Ваше замовлення прийнято!"
+                    "func" : "order_item_image",
+
+                    "errors":
+                    {
+                        "type_mismatch" : "Я бот, тому зрозумію тільки зображення."
+                    },
+                    
+                    "input_type" : "image"
                 }
             }
         }
