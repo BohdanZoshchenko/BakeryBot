@@ -1,10 +1,16 @@
-from os import stat
+from inspect import isawaitable
 from modules import *
 import telegram_bot_tree_funcs as bot_helper
-from inspect import signature
+
+from settings import *
+
+#### most of defs make without async/await (except callback and message handler)
+
+nest_asyncio.apply()
 
 bot = bot_helper.bot
 bot_tree = bot_helper.bot_tree
+
 
 simple_callbacks: Dict = bot_tree["main"]["simple_callbacks"]
 composite_callbacks: Dict = bot_tree["main"]["composite_callbacks"]
@@ -12,11 +18,11 @@ simple_buttons = bot_tree["main"]["simple_buttons"]
 funnels = bot_tree["main"]["funnels"]
 
 
-def handle_goto(chat_id, goto: str, gotos: Dict, simple_buttons=None, param=None, message=None):
+async def handle_goto(chat_id, goto: str, gotos: Dict, simple_buttons=None, param=None, message=None):
     if goto == None:
         #("Goto is None")
         return
-
+        
     text = None
     if "text" in gotos[goto].keys():
         text = gotos[goto]["text"]
@@ -59,38 +65,34 @@ def handle_goto(chat_id, goto: str, gotos: Dict, simple_buttons=None, param=None
         sql_result = db_helper.do_sql(sql, param)
 
     if "goto" in gotos[goto].keys():
-        handle_goto(chat_id, gotos[goto]["goto"], gotos, simple_buttons, param)
+        await handle_goto(chat_id, gotos[goto]["goto"], gotos, simple_buttons, param)
 
     # This block should be always in the end, before sending message
     if "func" in gotos[goto].keys():
         func = gotos[goto]["func"]
         state = get_user_state(chat_id)
-        script = "bot_helper." + func + \
-            str(signature(eval("bot_helper." + func)))
-        execute_script(script, chat_id, sql, sql_result, param, state)
+        await execute_script(func, chat_id, sql, sql_result, param, state)
 
         return
     # Block end
 
     # If there was a script, this message will not be sent
     if text:
-        bot.send_message(chat_id, text, reply_markup=markup, parse_mode="html")
+        await bot.send_message(chat_id, text, reply_markup=markup, parse_mode="html")
 
 
-def start_funnel(chat_id, call_info=None, msg=None, param=None):
+async def start_funnel(chat_id, call_info=None, msg=None, param=None):
     state = "0", call_info, param
     set_user_state(chat_id, state)
-    play_funnel_level(chat_id, state, msg)
+    await play_funnel_level(chat_id, state, msg)
 
+async def handle_unknown_input(chat_id):
+    await handle_goto(chat_id, "unknown_input", gotos=bot_tree["main"])
 
-def handle_unknown_input(chat_id):
-    handle_goto(chat_id, "unknown_input", gotos=bot_tree["main"])
-
-
-@bot.message_handler(func=lambda message: True, content_types=['audio', 'photo', 'voice', 'video', 'document', 'text', 'location', 'contact', 'sticker'])
-def handle_user_messages_and_simple_buttons(message: types.Message):
+@dp.message_handler(content_types=ContentType.ANY)
+async def handle_user_messages_and_simple_buttons(message: types.Message):
     chat_id = message.chat.id
-
+    print(message.content_type)
     gotos: Dict = bot_tree["main"]["simple_gotos"]
     commands: Dict = bot_tree["main"]["commands"]
     simple_buttons = bot_tree["main"]["simple_buttons"]
@@ -99,19 +101,8 @@ def handle_user_messages_and_simple_buttons(message: types.Message):
     # funnel
     state = get_user_state(chat_id)
 
-    if state is not None and state != [None, None, None]:
-        param = message
-        i = 0
-        while not play_funnel_level(chat_id, get_user_state(chat_id), param):
-            if i > 0:
-                break
-            state = get_user_state(chat_id)
-            level, funnel, params = state
-            
-            if len(params)-1 >= 0:
-                param = params[len(params)-1]
-            set_user_state(chat_id,state)
-            i += 1
+    if state is not None and state != [None, None, None] and state[0] != "0":
+        await play_funnel_level(chat_id, state, message)
         return
 
     if message.text is not None and message.text != "":
@@ -125,19 +116,19 @@ def handle_user_messages_and_simple_buttons(message: types.Message):
                         goto = commands[command]["goto"]
                         if goto in gotos.keys():
                             m = message
-                            handle_goto(chat_id, goto, gotos,
+                            await handle_goto(chat_id, goto, gotos,
                                         simple_buttons, message=m)
                         else:
-                            handle_unknown_input(chat_id)
+                            await handle_unknown_input(chat_id)
                             #(goto + ":Goto undefined")
                     else:
-                        handle_unknown_input(chat_id)
+                        await handle_unknown_input(chat_id)
                         #(command + "Command has no goto")
                 else:
-                    handle_unknown_input(chat_id)
+                    await handle_unknown_input(chat_id)
                     #(command + ":Command undefined")
             else:
-                handle_unknown_input(chat_id)
+                await handle_unknown_input(chat_id)
                 #("No command body")
         else:
             # simple buttons and messages
@@ -147,16 +138,15 @@ def handle_user_messages_and_simple_buttons(message: types.Message):
                     if button[1] == message.text and button[1] in gotos.keys():
                         goto = button[1]
                         m = message
-                        handle_goto(chat_id, goto, gotos,
+                        await handle_goto(chat_id, goto, gotos,
                             simple_buttons, message=m)
                         return
-            handle_unknown_input(chat_id)
+            await handle_unknown_input(chat_id)
     else:
-        handle_unknown_input(chat_id)
+        await handle_unknown_input(chat_id)
 
-
-@bot.callback_query_handler(func=lambda call: True)
-def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda callback_query:True)
+async def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
     chat_id = callback.message.chat.id
 
     callb = callback.data
@@ -167,27 +157,32 @@ def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
         for key in f_keys:
             if key in callb and callb[len(key)] == "%":
                 p = callb[len(key)+1:len(callb)]
-                start_funnel(chat_id, call_info=key, param=[p])
+                await start_funnel(chat_id, call_info=key, param=[p])
                 return
             else:
                 set_user_state(chat_id, None)
 
         if callb in simple_callbacks.keys():
-            handle_goto(chat_id, callb, simple_callbacks, simple_buttons)
+            await handle_goto(chat_id, callb, simple_callbacks, simple_buttons)
             return
         else:
             cc_keys = composite_callbacks.keys()
             for key in cc_keys:
                 if key in callb and callb[len(key)] == "%":
                     param = [callb[len(key)+1:len(callb)]]
-                    handle_goto(chat_id, key, composite_callbacks,
+                    await handle_goto(chat_id, key, composite_callbacks,
                         simple_buttons, param)
                     return
 
-
-def execute_script(script, chat_id, sql, sql_result, param, state):
-    eval(script, None, locals())
-
+async def execute_script(func_name, chat_id=None, sql=None, sql_result=None, param=None, state=None):
+    func_name = "bot_helper." + func_name
+    func = eval(func_name)
+    script = func_name + \
+            str(signature(func))
+    if iscoroutinefunction(func) or isawaitable(func):
+        await eval(script, globals(), locals())
+    else:
+        eval(script, globals(), locals())
 
 def set_user_state(chat_id, state):
     if state == None:
@@ -199,18 +194,16 @@ def set_user_state(chat_id, state):
     db_helper.do_sql(bot_tree["database"]["set_user_state"], [
                      chat_id, level, funnel, params, level, funnel, params])
 
-
 def get_user_state(chat_id):
     sql_result = db_helper.do_sql(
         bot_tree["database"]["get_user_state"], [chat_id])
     if len(sql_result) == 0:
-        return None
+        return
     state = [sql_result[0][0], sql_result[0][1], sql_result[0][2]]
     print(state)
     return state
 
-
-def play_funnel_level(chat_id, state, msg=None):
+async def play_funnel_level(chat_id, state, msg=None):
     if state is None or state == [None, None, None]:
         return False
     
@@ -220,16 +213,15 @@ def play_funnel_level(chat_id, state, msg=None):
     if msg is None and level is not None:
         level = int(level)
         if level == 0:
-            funnel_execute(chat_id, level, level_content, funnel, state, params, x=None)
+            await funnel_execute(chat_id, level, funnel, params, x=None)
             return True
         else:
-            print("ERROR")
             return False
 
     msg_content = None
     if msg is not None:
         if msg is types.Message:
-            msg_content = eval("msg."+msg.content_type, globals(), locals())
+            msg_content = eval("msg."+msg.content_type, locals(), locals())
         else:
             msg_content = msg
     x = None
@@ -239,13 +231,11 @@ def play_funnel_level(chat_id, state, msg=None):
             return False
 
         if msg_content is not None:
-            valid_info = bot_helper.is_value_valid(msg, level_content)
+            valid_info = is_value_valid(msg, level_content)
             print(valid_info)
             if valid_info[0] != "ok":
-                print("Not ok")
-                on_wrong_input(chat_id, valid_info[0], level_content)
-                state[0] = str(int(state[0])-1)
-                set_user_state(chat_id, state)
+                await on_wrong_input(chat_id, valid_info[0], level_content)
+                await funnel_execute(chat_id, level - 1, funnel, params, x=None)
                 return False
             else:
                 x = valid_info[1]
@@ -261,21 +251,21 @@ def play_funnel_level(chat_id, state, msg=None):
         else:
             return False
 
-        funnel_execute(chat_id, level, level_content, funnel, state, params, x)
+        await funnel_execute(chat_id, level, funnel, params, x)
 
         return True
     else:
         return False
 
-def funnel_execute(chat_id, level, level_content, funnel, state, params, x=None):
+async def funnel_execute(chat_id, level, funnel, params, x=None):
+    state = [level, funnel, params]
+    level_content = get_funnel_level_content(chat_id, state)
     if "text" in level_content.keys():
-        bot.send_message(chat_id, level_content["text"], parse_mode="html")
+        await bot.send_message(chat_id, level_content["text"], parse_mode="html")
 
     if "func" in level_content.keys():
         s = state
         func = level_content["func"]
-        script = "bot_helper." + func + \
-            str(signature(eval("bot_helper." + func)))
         sql = None
         if "sql" in level_content.keys():
             sql = level_content["sql"]
@@ -286,7 +276,8 @@ def funnel_execute(chat_id, level, level_content, funnel, state, params, x=None)
                 p = None
             else:
                 p = params[len(params)-1]
-        execute_script(script, chat_id, sql,
+                
+        await execute_script(func, chat_id, sql,
             sql_result=None, param=p, state=s)
 
     level = int(level)
@@ -299,25 +290,95 @@ def funnel_execute(chat_id, level, level_content, funnel, state, params, x=None)
 
     set_user_state(chat_id, state)
 
+def is_value_valid(msg, level_content):
+    type = None
+
+    if "input_type" in level_content.keys():
+        type = level_content["input_type"]
+    else:
+        return "type_mismatch", msg
+
+    if type == "text":
+        type = "str"
+    elif type == "image":
+        type = "photo"
+    if not isinstance(msg, types.Message):
+        msg_type = type(msg)
+        value = msg
+    else:
+        msg_type = msg.content_type
+
+        value = eval("msg." + msg_type)
+        print(msg_type)
+        print(type)
+        if msg_type == "text" and type == "str":
+            msg_type = "str"
+        if type != "str":
+            if type == msg_type:
+                print("type == msg_t")
+                return "ok", value
+
+    x = None
+    try:
+        type = eval(type)
+    except:
+        if type == msg_type:
+            return "ok", value
+        else:
+            return "type_mismatch", value
+    
+    x = str_to_number(value, type)
+    if msg_type == str and not x:
+        return "type_mismatch", x
+
+    min = None
+    if "min" in level_content.keys():
+        min = level_content["min"]
+    max = None
+    if "max" in level_content.keys():
+        max = level_content["max"]
+    if isinstance(x, str):
+        if min != None and len(x) < min:
+            return "too_little", x
+        if max != None and len(x) > max:
+            return "too_big", x
+    else:
+        if min != None and x < min:
+            return "too_little", x
+        if max != None and x > max:
+            return "too_big", x
+    return "ok", x
+
+def str_to_number(value:str, type):
+    if type is not int and type is not float:
+        return False
+    try:
+        if type is float:
+            value = value.replace(",", ".")
+    finally:
+        try:
+            x = type(value)
+            return x
+        except ValueError:
+            return False
+
 def error_exists(error: str, level_content):
     for error in level_content["errors"].keys():
         return True
 
     return False
 
-
-def on_wrong_input(chat_id, error: str, level_content):
+async def on_wrong_input(chat_id, error: str, level_content):
     text = bot_tree["main"]["funnel_unknown_input"]
     x = "errors" in level_content.keys()
 
     if x and error_exists(error, level_content):
         text = level_content["errors"][error]
-    bot.send_message(chat_id, text, parse_mode="html")
+    await bot.send_message(chat_id, text, parse_mode="html")
 
 
 def to_state(level, funnel, params):
     return [str(level), funnel, params]
-
 
 def get_funnel_level_content(chat_id, state):
     if state is None:
@@ -334,43 +395,36 @@ def get_funnel_level_content(chat_id, state):
 
     return level_content
 
+async def on_startup(dp):
+    logging.warning(
+    'Starting connection. ')
+    await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
-def on_user_distracted(chat_id):
-    text = bot_tree["main"]["on_user_distracted"]
-    state = get_user_state(chat_id)
-    if not state:
-        return False
-    bot.send_message(chat_id, text, parse_mode="html")
-    play_funnel_level(chat_id, state)
-    return True
+async def on_shutdown(dp):
+    logging.warning('Bye! Shutting down webhook connection')
 
-def run():
+
+async def main():
     if "HEROKU" in list(os.environ.keys()):
-        logger = telebot.logger
+        # webserver settings
+        WEBAPP_HOST = '0.0.0.0'
+        WEBAPP_PORT = int(os.getenv('PORT'))
+
+        logger = Dispatcher.logger
         logger.setLevel(logging.INFO)
 
-        server = Flask(__name__)
-
-        @server.route('/'+bot_tree["params"]["telegram_token"], methods=['POST'])
-        def getMessage():
-            json_string = request.stream.read().decode('utf-8')
-            update = telebot.types.Update.de_json(json_string)
-            bot.process_new_updates([update])
-            return "!", 200
-
-        @server.route("/")
-        def webhook():
-            bot.remove_webhook()
-            bot.set_webhook(
-                url=bot_tree["params"]["url"]+bot_tree["params"]["telegram_token"])
-            return "?", 200
-        from waitress import serve
-        serve(server, host="0.0.0.0", port=os.environ.get(
-            'PORT', bot_tree["params"]["server_port"]))
-
+        logging.basicConfig(level=logging.INFO)
+        
+        start_webhook(dispatcher=dp, 
+        webhook_path=WEBHOOK_PATH,
+        skip_updates=True,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown,
+        host=WEBAPP_HOST,
+        port=WEBAPP_PORT)
     else:
-        bot.remove_webhook()
-        bot.polling(none_stop=True)
+        await bot.delete_webhook()
+        executor.start_polling(dp, skip_updates = True)
 
 
-run()
+asyncio.run(main())

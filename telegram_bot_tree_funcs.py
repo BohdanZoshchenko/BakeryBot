@@ -1,71 +1,19 @@
 # this module is NOT UNIVERSAL for different bots
 from modules import *
+from settings import *
 
-bot_tree = json_helper.bot_json_to_obj()
-
-bot = telebot.TeleBot(bot_tree["params"]["telegram_token"])
-
-def is_value_valid(msg, level_content):
-    type = None
-    if not isinstance(msg, types.Message):
-        msg_type = type(msg)
-        value = msg
-    else:
-        msg_type = msg.content_type
-        value = eval("msg." + msg_type, globals(), locals())
-    if "input_type" in level_content.keys():
-        type = level_content["input_type"]
-        if type not in ["float", "int", "byte"]:
-            return "ok", value
-    else:
-        return "ok", value
-    min = None
-    if "min" in level_content.keys():
-        min = level_content["min"]
-    max = None
-    if "max" in level_content.keys():
-        max = level_content["max"]
-    
-    x = None
-    type = eval(type)
-    x = convert(value, type)
-    if not isinstance(x, type) or not x:
-        return "type_mismatch", x
-    if isinstance(x, str):
-        if min != None and len(x) < min:
-            return "too_little", x
-        if max != None and len(x) > max:
-            return "too_big", x
-    else:
-        if min != None and x < min:
-            return "too_little", x
-        if max != None and x > max:
-            return "too_big", x
-    return "ok", x
-
-
-def convert(value, type):
-    value = str(value)
-    if type is float:
-        value = value.replace(",", ".")
-    try:
-        x = type(value)
-        return x
-    except ValueError:
-        return False
-
-
-def show_items(chat_id, sql_result):
+async def show_items(chat_id, sql_result):
+    print("items")
     items = sql_result
     markup = types.InlineKeyboardMarkup()
     for item in items:
         button = types.InlineKeyboardButton(
             '🍰 '+ item[0]+' '+str(item[1]) + ' ГРН/КГ', callback_data='show_item%' + item[0])
         markup.add(button)
-    bot.send_message(chat_id, "Обирайте 🧐", reply_markup=markup)
+    await bot.send_message(chat_id, "Обирайте 🧐", reply_markup=markup)
 
 
-def show_single_item(chat_id, param, sql_result):
+async def show_single_item(chat_id, param, sql_result):
     item = sql_result[0]
     text = '*'+param[0]+'*\n'
     text += str(item[1])+"\n" #description
@@ -81,17 +29,17 @@ def show_single_item(chat_id, param, sql_result):
     back_button = types.InlineKeyboardButton(
             'Назад', callback_data='new_greeting')
     markup.row(info_button, back_button)
-    bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown", reply_markup=markup)
+    await bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown", reply_markup=markup)
 
-def order_item_start(chat_id, state):
+async def order_item_start(chat_id, state):
     level = state[0]
     funnel = state[1]
     params = state[2]
     name = params[0]
     text ="*"+name+"*\nЯку вагу бажаєте (від 2 до 102 кілограмів 😊)? Наприклад, 3.25"
-    bot.send_message(chat_id, text, parse_mode="Markdown")
+    await bot.send_message(chat_id, text, parse_mode="Markdown")
 
-def order_item_mass(chat_id, state, sql, param):
+async def order_item_mass(chat_id, state, sql, param):
     level = state[0]
     funnel = state[1]
     params = state[2]
@@ -106,14 +54,14 @@ def order_item_mass(chat_id, state, sql, param):
     text+= str(mass) + " кг x " + str(price) + " = " 
     text+= str(sum) + " ГРН*"
     text+="\nЧудово. Тепер напишіть побажання щодо смаколика. Наприклад, про начинку і декор або дату бронювання"
-    bot.send_message(chat_id, text, parse_mode="Markdown")
+    await bot.send_message(chat_id, text, parse_mode="Markdown")
 
-def order_item_description(chat_id, state):
-    bot.send_message(chat_id, "Супер! Наостанок надішліть фото чи інше зображення, за яким можна зробити декор.")
+async def order_item_description(chat_id, state):
+    await bot.send_message(chat_id, "Супер! Наостанок надішліть фото чи інше зображення, за яким можна зробити декор.")
 
-def order_item_image(chat_id):
+async def order_item_image(chat_id):
     #bot.send_photo(chat_id)
-    bot.send_message(chat_id, "ok")
+    await bot.send_message(chat_id, "ok")
 
 def price_format(price):
     price = float(price)
@@ -125,3 +73,4 @@ def price_format(price):
         price[1] += "0"
     price = price[0] + "." + price[1]
     return price
+

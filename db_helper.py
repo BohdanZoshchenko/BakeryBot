@@ -32,9 +32,12 @@ def do_sql(sql:str, fields=None, records_count_to_fetch:int=None):
             except:
                 pass
         conn.commit()
+
         #print("DB: commit was succesful")
         #if isinstance(result, list):
         #   print("DB: query result: " + str(result))
+        cursor.close()
+
         return result
 
 def create_tables():

@@ -22,3 +22,6 @@ virtualenv==20.4.4
 waitress
 instascrape
 instapy
+aiogram
+asyncio
+nest_asyncio
