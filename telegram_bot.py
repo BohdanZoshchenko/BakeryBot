@@ -12,11 +12,10 @@ bot = bot_helper.bot
 bot_tree = bot_helper.bot_tree
 
 
-simple_callbacks: Dict = bot_tree["main"]["simple_callbacks"]
-composite_callbacks: Dict = bot_tree["main"]["composite_callbacks"]
-simple_buttons = bot_tree["main"]["simple_buttons"]
-funnels = bot_tree["main"]["funnels"]
-
+simple_callbacks: Dict = bot_tree["user"]["simple_callbacks"]
+composite_callbacks: Dict = bot_tree["user"]["composite_callbacks"]
+simple_buttons = bot_tree["user"]["simple_buttons"]
+funnels = bot_tree["user"]["funnels"]
 
 async def handle_goto(chat_id, goto: str, gotos: Dict, simple_buttons=None, param=None, message=None):
     if goto == None:
@@ -87,15 +86,18 @@ async def start_funnel(chat_id, call_info=None, msg=None, param=None):
     await play_funnel_level(chat_id, state, msg)
 
 async def handle_unknown_input(chat_id):
-    await handle_goto(chat_id, "unknown_input", gotos=bot_tree["main"])
+    await handle_goto(chat_id, "unknown_input", gotos=bot_tree["user"])
 
 @dp.message_handler(content_types=ContentType.ANY)
 async def handle_user_messages_and_simple_buttons(message: types.Message):
     chat_id = message.chat.id
-    gotos: Dict = bot_tree["main"]["simple_gotos"]
-    commands: Dict = bot_tree["main"]["commands"]
-    simple_buttons = bot_tree["main"]["simple_buttons"]
-    funnels = bot_tree["main"]["funnels"]
+
+    await add_admin_button(chat_id)
+
+    gotos: Dict = bot_tree["user"]["simple_gotos"]
+    commands: Dict = bot_tree["user"]["commands"]
+    simple_buttons = bot_tree["user"]["simple_buttons"]
+    funnels = bot_tree["user"]["funnels"]
 
     # funnel
     state = get_user_state(chat_id)
@@ -119,16 +121,20 @@ async def handle_user_messages_and_simple_buttons(message: types.Message):
                             await handle_goto(chat_id, goto, gotos,
                                         simple_buttons, message=m)
                         else:
-                            await handle_unknown_input(chat_id)
+                            if message.text != "Адмін-панель":
+                                await handle_unknown_input(chat_id)
                             #(goto + ":Goto undefined")
                     else:
-                        await handle_unknown_input(chat_id)
+                        if message.text != "Адмін-панель":
+                            await handle_unknown_input(chat_id)
                         #(command + "Command has no goto")
                 else:
-                    await handle_unknown_input(chat_id)
+                    if message.text != "Адмін-панель":
+                            await handle_unknown_input(chat_id)
                     #(command + ":Command undefined")
             else:
-                await handle_unknown_input(chat_id)
+                if message.text != "Адмін-панель":
+                    await handle_unknown_input(chat_id)
                 #("No command body")
         else:
             # simple buttons and messages
@@ -141,13 +147,17 @@ async def handle_user_messages_and_simple_buttons(message: types.Message):
                         await handle_goto(chat_id, goto, gotos,
                             simple_buttons, message=m)
                         return
-            await handle_unknown_input(chat_id)
+            if message.text != "Адмін-панель":
+                await handle_unknown_input(chat_id)
     else:
-        await handle_unknown_input(chat_id)
+        if message.text != "Адмін-панель":
+            await handle_unknown_input(chat_id)
 
 @dp.callback_query_handler(lambda callback_query:True)
 async def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
     chat_id = callback.message.chat.id
+
+    await add_admin_button(chat_id)
 
     callb = callback.data
 
@@ -355,7 +365,7 @@ def error_exists(error: str, level_content):
     return False
 
 async def on_wrong_input(chat_id, error: str, level_content):
-    text = bot_tree["main"]["funnel_unknown_input"]
+    text = bot_tree["user"]["funnel_unknown_input"]
     x = "errors" in level_content.keys()
 
     if x and error_exists(error, level_content):
@@ -380,7 +390,7 @@ def get_funnel_level_content(chat_id, state):
         set_user_state(chat_id, None)
     else:
         state = to_state(level, funnel, params)
-        level_content = bot_tree["main"]["funnels"]
+        level_content = bot_tree["user"]["funnels"]
 
         if level in level_content[funnel].keys():
             level_content = level_content[funnel][level]
@@ -391,7 +401,38 @@ def get_funnel_level_content(chat_id, state):
     return level_content
 
 async def add_admin_button(chat_id):
-    admin_id_list = db_helper.do_sql(bot)
+    admin_id_list = db_helper.do_sql(bot_tree["database"]["get_admins"], [])
+    if len(admin_id_list)>0:
+        for i in admin_id_list:
+            if i[0] == chat_id:
+                if db_helper.do_sql(bot_tree["database"]["get_keyboard_created"], [chat_id])[0][0]:
+                    return
+                if db_helper.do_sql(bot_tree["database"]["get_admin_on"], [chat_id])[0][0]:
+                    return
+                admin_keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)
+                button = types.KeyboardButton("Адмін-панель")
+                admin_keyboard.add(button)
+                await bot.send_message(chat_id, text = "Ви - адміністратор. Щоб відкрити адмін-панель, натисніть кнопку Адмін-панель на клавіатурі", reply_markup=admin_keyboard)
+                db_helper.do_sql(bot_tree["database"]["set_keyboard_created"], [True, chat_id])
+
+@dp.message_handler()               
+async def admin_mode_on(message : types.Message):
+    if message.text != "Адмін-панель":
+        return
+    admin_id_list = db_helper.do_sql(bot_tree["database"]["get_admins"], [])
+    if len(admin_id_list)>0:
+        for i in admin_id_list:
+            if i[0] == message.chat.id:
+                db_helper.do_sql(bot_tree["database"]["set_admin_on"], [True, message.chat.id])
+                #if db_helper.do_sql(bot_tree["database"]["get_admin_on"], [message.chat.id])[0][0]:
+                #    return
+                set_user_state(message.chat.id, [None, None, None])
+                handle_goto(message.chat.id, "start", gotos=bot_tree["admin"])
+        
+@dp.callback_query_handler(lambda callback_query:True)
+async def quit_admin(callback):
+    if callback.data == "quit_admin":
+        db_helper.do_sql(bot_tree["database"]["set_admin_on"], [False, callback.message.chat.id])
 
 async def on_startup(dp):
     logging.warning(

@@ -2,6 +2,10 @@
 from modules import *
 from settings import *
 
+async def select_date(chat_id):
+    text = "Вкажіть дату й час, коли хочете отримати замовлення.\nМінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів"
+    await bot.send_message(chat_id, text)          
+
 async def show_items(chat_id, sql_result):
     print("items")
     items = sql_result
@@ -53,13 +57,13 @@ async def order_item_mass(chat_id, state, sql, param):
     text = "*"+ name+"\n"
     text+= str(mass) + " кг x " + str(price) + " = "
     text+= str(sum) + " ГРН + за декор окремо*"
-    text+="\nЧудово! Ви підтверджуєте замовлення?"
+    text+="\nЧудово! Ви замовите ще щось чи оформите те, що є?"
 
     inline_kb = types.InlineKeyboardMarkup(row_width=1)
-    inline_kb.add(types.InlineKeyboardButton('Підтверджую', callback_data="accept_order"+text))
-    inline_kb.add(types.InlineKeyboardButton('Подумаю ще', callback_data='new_greeting'))
+    inline_kb.add(types.InlineKeyboardButton('Замовити ще', callback_data='order'))
+    inline_kb.add(types.InlineKeyboardButton('Оформити', callback_data='finish_order'))
 
-    await bot.send_message(chat_id, text, parse_mode="Markdown")
+    await bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=inline_kb)
 
 async def handle_order():
     pass

@@ -5,9 +5,13 @@
     "database" : 
     {
         "delete_client_table" : "DROP TABLE client",
+        "set_admin_on" : "UPDATE admin SET admin_on = %s WHERE  user_id = %s",
+        "get_admin_on" : "SELECT admin_on FROM admin WHERE user_id = %s",
+        "set_keyboard_created" : "UPDATE admin SET keyboard_created = %s WHERE  user_id = %s",
+        "get_keyboard_created" : "SELECT keyboard_created FROM admin WHERE user_id = %s",
         "create_tables" :
         [
-            "CREATE TABLE IF NOT EXISTS admin (user_id integer NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS admin (user_id integer NOT NULL, admin_on boolean NULL, keyboard_created boolean NULL)",
             
             "CREATE TABLE IF NOT EXISTS promotion (name varchar NOT NULL, text varchar NOT NULL, photos bytea[] NULL)",
             
@@ -20,7 +24,7 @@
 
         "set_user_state" : "INSERT INTO client VALUES(%s,%s,%s,%s) ON CONFLICT (chat_id) DO UPDATE SET level = %s, funnel = %s, params = %s",
         "get_user_state" : "SELECT level, funnel, params FROM client WHERE chat_id = %s",
-        "get_admins" : "SELECT user_id FROM admins"
+        "get_admins" : "SELECT * FROM admin"
     },
 
     "params":
@@ -59,8 +63,15 @@
             "password" : ""
         }
     },
+    "admin" :
+    {
+        "start" : 
+        {
 
-    "main" :
+        }
+    },
+
+    "user" :
     {
         "unknown_input" : 
         {
@@ -112,8 +123,14 @@
 
             "info_in_telegram" :
             {
-                "text" : "З додаткових питань пишіть кондитерці Марії @MariaYav",
+                "text" : "Мінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів\nБронювання здійснюється після уточнення:\n-дати та часу\n-ваги та начинки\n-декору\nпередоплати 50% від вартості виробу\nДЕКОР ОПЛАЧУЄТЬСЯ ОКРЕМО\nДОСТАВКА - САМОВИВІЗ/ ТАКСІ\nЗ додаткових питань пишіть кондитерці Марії ****** або телефонуйте їй ******",
                 "inline_buttons":[[["Назад", "new_greeting"]]]
+            },
+
+            "select_date" : 
+            {
+                "func" : "select_date",
+                "funnel" : "date"
             },
 
             "order" :
