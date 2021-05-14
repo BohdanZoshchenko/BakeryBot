@@ -92,7 +92,6 @@ async def handle_unknown_input(chat_id):
 @dp.message_handler(content_types=ContentType.ANY)
 async def handle_user_messages_and_simple_buttons(message: types.Message):
     chat_id = message.chat.id
-    print(message.content_type)
     gotos: Dict = bot_tree["main"]["simple_gotos"]
     commands: Dict = bot_tree["main"]["commands"]
     simple_buttons = bot_tree["main"]["simple_buttons"]
@@ -101,7 +100,8 @@ async def handle_user_messages_and_simple_buttons(message: types.Message):
     # funnel
     state = get_user_state(chat_id)
 
-    if state is not None and state != [None, None, None] and state[0] != "0":
+    if state is not None and state != [None, None, None] and state[0] != "0" and state[2] is not None:
+        print(state)
         await play_funnel_level(chat_id, state, message)
         return
 
@@ -187,20 +187,20 @@ async def execute_script(func_name, chat_id=None, sql=None, sql_result=None, par
 def set_user_state(chat_id, state):
     if state == None:
         state = [None, None, None]
-    level = state[0]
-    funnel = state[1]
+    level = str(state[0])
+    funnel = str(state[1])
     params = state[2]
-    print(state)
-    db_helper.do_sql(bot_tree["database"]["set_user_state"], [
-                     chat_id, level, funnel, params, level, funnel, params])
+    db_helper.do_sql(bot_tree["database"]["set_user_state"], 
+                            [chat_id, level, funnel, params, level, funnel, params])
 
 def get_user_state(chat_id):
     sql_result = db_helper.do_sql(
         bot_tree["database"]["get_user_state"], [chat_id])
     if len(sql_result) == 0:
-        return
+        return None
+    if len (sql_result[0]) != 3:
+        return None
     state = [sql_result[0][0], sql_result[0][1], sql_result[0][2]]
-    print(state)
     return state
 
 async def play_funnel_level(chat_id, state, msg=None):
@@ -208,6 +208,8 @@ async def play_funnel_level(chat_id, state, msg=None):
         return False
     
     level_content = get_funnel_level_content(chat_id, state)
+    if level_content is None:
+        return False
 
     level, funnel, params = state
     if msg is None and level is not None:
@@ -221,36 +223,28 @@ async def play_funnel_level(chat_id, state, msg=None):
     msg_content = None
     if msg is not None:
         if msg is types.Message:
-            msg_content = eval("msg."+msg.content_type, locals(), locals())
+            msg_content = eval("msg."+msg.content_type, globals(), locals())
         else:
             msg_content = msg
     x = None
     if level is not None and (int(level) == 0 or msg_content is not None):
         level = int(level)
-        if level_content is None:
-            return False
 
         if msg_content is not None:
             valid_info = is_value_valid(msg, level_content)
-            print(valid_info)
             if valid_info[0] != "ok":
                 await on_wrong_input(chat_id, valid_info[0], level_content)
                 await funnel_execute(chat_id, level - 1, funnel, params, x=None)
                 return False
             else:
                 x = valid_info[1]
-                if x is float and "after_comma" in level_content.keys():
-                    x = round(x, level_content["after_comma"])
-                    x = str(x)
-                if msg.content_type == "text":
-                    x = str(x)
+                x = str(x)
                 if len(state) < 3 or state[2] is None or state[2] == []:
                     state.append([x])
                 else:
                     state[2].append(x)
         else:
             return False
-
         await funnel_execute(chat_id, level, funnel, params, x)
 
         return True
@@ -260,9 +254,10 @@ async def play_funnel_level(chat_id, state, msg=None):
 async def funnel_execute(chat_id, level, funnel, params, x=None):
     state = [level, funnel, params]
     level_content = get_funnel_level_content(chat_id, state)
+    if level_content is None:
+        return False
     if "text" in level_content.keys():
         await bot.send_message(chat_id, level_content["text"], parse_mode="html")
-
     if "func" in level_content.keys():
         s = state
         func = level_content["func"]
@@ -276,7 +271,6 @@ async def funnel_execute(chat_id, level, funnel, params, x=None):
                 p = None
             else:
                 p = params[len(params)-1]
-                
         await execute_script(func, chat_id, sql,
             sql_result=None, param=p, state=s)
 
@@ -284,83 +278,75 @@ async def funnel_execute(chat_id, level, funnel, params, x=None):
     level += 1
     level = str(level)
     state = to_state(level, funnel, params)
-
     if get_funnel_level_content(chat_id, state) is None:
-        state = None
+        print("yes")
+        state = [None, None, None]
 
     set_user_state(chat_id, state)
 
 def is_value_valid(msg, level_content):
-    type = None
 
-    if "input_type" in level_content.keys():
-        type = level_content["input_type"]
-    else:
-        return "type_mismatch", msg
+    def str_to_number(value:str, input_type:str, min = None, max = None, after_comma = None):
 
-    if type == "text":
-        type = "str"
-    elif type == "image":
-        type = "photo"
-    if not isinstance(msg, types.Message):
-        msg_type = type(msg)
-        value = msg
-    else:
-        msg_type = msg.content_type
-
-        value = eval("msg." + msg_type)
-        print(msg_type)
-        print(type)
-        if msg_type == "text" and type == "str":
-            msg_type = "str"
-        if type != "str":
-            if type == msg_type:
-                print("type == msg_t")
-                return "ok", value
-
-    x = None
-    try:
-        type = eval(type)
-    except:
-        if type == msg_type:
+        def correct_number(value, min = None, max = None, after_comma = None):
+            if not isinstance(value, float) and not isinstance(value, int):
+                return "type_mismatch", value
+            if isinstance(value, float):
+                value = round(value, after_comma)
+            if min is not None and value < min:
+                return "too_little", value
+            if max is not None and value > max:
+                return "too_big", value
             return "ok", value
+
+        if input_type == "int":
+            try:
+                return correct_number(int(value), min, max, after_comma)
+            except:
+                return "type_mismatch", value
+        elif input_type == "float":
+            try:
+                value = value.replace(",", ".")
+                return correct_number(float(value), min, max, after_comma)
+            except:
+                return "type_mismatch", value
+
+    value = None
+    value_type = None
+
+    if isinstance(msg, types.Message):
+        value = eval("msg." + msg.content_type)
+        value_type = msg.content_type
+        if value_type == "text":
+            value_type = "str"
+    else:
+        value = msg
+        value_type = str(type(value))
+    
+    input_type = None
+    if "input_type" in level_content.keys():
+        input_type = level_content["input_type"]
+        if input_type == "text":
+            input_type = "str"
+        elif input_type == "image":
+            input_type = "photo"
+        if input_type == value_type:
+            return "ok", value
+        elif (input_type == "float" or input_type == "int") and value_type == "str":
+            min = None
+            if "min" in level_content.keys():
+                min = level_content["min"]
+            max = None
+            if "max" in level_content.keys():
+                max = level_content["max"]
+            after_comma = None
+            if "after_comma" in level_content.keys():
+                after_comma = level_content["after_comma"]
+            return str_to_number(value, input_type, min, max, after_comma)
         else:
             return "type_mismatch", value
-    
-    x = str_to_number(value, type)
-    if msg_type == str and not x:
-        return "type_mismatch", x
-
-    min = None
-    if "min" in level_content.keys():
-        min = level_content["min"]
-    max = None
-    if "max" in level_content.keys():
-        max = level_content["max"]
-    if isinstance(x, str):
-        if min != None and len(x) < min:
-            return "too_little", x
-        if max != None and len(x) > max:
-            return "too_big", x
     else:
-        if min != None and x < min:
-            return "too_little", x
-        if max != None and x > max:
-            return "too_big", x
-    return "ok", x
-
-def str_to_number(value:str, type):
-    if type is not int and type is not float:
-        return False
-    try:
-        if type is float:
-            value = value.replace(",", ".")
-    finally:
-        try:
-            x = type(value)
-            return x
-        except ValueError:
-            return False
+        return "type_mismatch", value
 
 def error_exists(error: str, level_content):
     for error in level_content["errors"].keys():
@@ -381,19 +367,31 @@ def to_state(level, funnel, params):
     return [str(level), funnel, params]
 
 def get_funnel_level_content(chat_id, state):
-    if state is None:
+    if state is None or state == [None, None, None]:
+        set_user_state(chat_id, [None, None, None])
         return None
     level, funnel, params = state
-    level = int(level)
-    level_content = bot_tree["main"]["funnels"]
-    if str(level) in level_content[funnel].keys():
-        level_content = level_content[funnel][str(level)]
-        set_user_state(chat_id, state)
-    else:
+    if funnel is None or funnel == "None":
+        set_user_state(chat_id, [None, None, None])
+        return None
+    level = str(level)
+    if level is None:
         level_content = None
         set_user_state(chat_id, None)
+    else:
+        state = to_state(level, funnel, params)
+        level_content = bot_tree["main"]["funnels"]
 
+        if level in level_content[funnel].keys():
+            level_content = level_content[funnel][level]
+            set_user_state(chat_id, state)
+        else:
+            level_content = None
+            set_user_state(chat_id, None)
     return level_content
+
+async def add_admin_button(chat_id):
+    admin_id_list = db_helper.do_sql(bot)
 
 async def on_startup(dp):
     logging.warning(
