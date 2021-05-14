@@ -51,17 +51,18 @@ async def order_item_mass(chat_id, state, sql, param):
     sum = price_format(sum)
 
     text = "*"+ name+"\n"
-    text+= str(mass) + " кг x " + str(price) + " = " 
-    text+= str(sum) + " ГРН*"
-    text+="\nЧудово. Тепер напишіть побажання щодо смаколика. Наприклад, про начинку і декор або дату бронювання"
+    text+= str(mass) + " кг x " + str(price) + " = "
+    text+= str(sum) + " ГРН + за декор окремо*"
+    text+="\nЧудово! Ви підтверджуєте замовлення?"
+
+    inline_kb = types.InlineKeyboardMarkup(row_width=1)
+    inline_kb.add(types.InlineKeyboardButton('Підтверджую', callback_data="accept_order"+text))
+    inline_kb.add(types.InlineKeyboardButton('Подумаю ще', callback_data='new_greeting'))
+
     await bot.send_message(chat_id, text, parse_mode="Markdown")
 
-async def order_item_description(chat_id, state):
-    await bot.send_message(chat_id, "Супер! Наостанок надішліть фото чи інше зображення, за яким можна зробити декор.")
-
-async def order_item_image(chat_id):
-    #bot.send_photo(chat_id)
-    await bot.send_message(chat_id, "ok")
+async def handle_order():
+    pass
 
 def price_format(price):
     price = float(price)
@@ -73,4 +74,3 @@ def price_format(price):
         price[1] += "0"
     price = price[0] + "." + price[1]
     return price
-

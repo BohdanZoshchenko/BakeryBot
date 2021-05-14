@@ -7,9 +7,11 @@
         "delete_client_table" : "DROP TABLE client",
         "create_tables" :
         [
+            "CREATE TABLE IF NOT EXISTS admin (user_id integer NOT NULL)",
+            
+            "CREATE TABLE IF NOT EXISTS promotion (name varchar NOT NULL, text varchar NOT NULL, photos bytea[] NULL)",
+            
             "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, level varchar NULL, funnel varchar NULL, params varchar[] NULL, PRIMARY KEY (chat_id))",
-
-            "CREATE TABLE IF NOT EXISTS category (price integer NOT NULL DEFAULT '450', PRIMARY KEY (price))",
     
             "CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, price integer NOT NULL DEFAULT '450')",
             
@@ -17,7 +19,8 @@
         ],
 
         "set_user_state" : "INSERT INTO client VALUES(%s,%s,%s,%s) ON CONFLICT (chat_id) DO UPDATE SET level = %s, funnel = %s, params = %s",
-        "get_user_state" : "SELECT level, funnel, params FROM client WHERE chat_id = %s"
+        "get_user_state" : "SELECT level, funnel, params FROM client WHERE chat_id = %s",
+        "get_admins" : "SELECT user_id FROM admins"
     },
 
     "params":
@@ -167,28 +170,6 @@
                     "min" : 2,
                     "max" : 102,
                     "after_comma" : 2
-                },
-                "2" :
-                {
-                    "func" : "order_item_description",
-
-                    "errors":
-                    {
-                        "type_mismatch" : "Я бот, тому зрозумію тільки текст."
-                    },
-                    
-                    "input_type" : "str"
-                },
-                "3" :
-                {
-                    "func" : "order_item_image",
-
-                    "errors":
-                    {
-                        "type_mismatch" : "Я бот, тому зрозумію тільки зображення."
-                    },
-                    
-                    "input_type" : "image"
                 }
             }
         }
