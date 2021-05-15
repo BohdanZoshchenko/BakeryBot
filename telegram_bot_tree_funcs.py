@@ -35,7 +35,17 @@ async def select_date(chat_id):
         return
     await bot.send_message(chat_id, text)          
 
-async def finish_order(chat_id):
+async def save_date(chat_id, param):
+    pass
+
+async def save_phone(chat_id, param):
+    pass
+
+async def finish_order(chat_id, param):
+
+    "SAVE PARAM (NAME) TO DB"
+
+
     sql = "DELETE FROM client_order WHERE client_id = %s"
     db_helper.do_sql(sql, [chat_id])
     text = "Замовлення прийнято! З вами скоро зв'яжеться кондитер, щоб все детально обговорити" 
@@ -56,8 +66,9 @@ async def finish_order(chat_id):
     markup = inline_keyboard
     await bot.send_message(chat_id, text, reply_markup=markup)
 
+    "SEND MESSAGES TO ADMINS"
+
 async def show_items(chat_id, sql_result):
-    print("items")
     items = sql_result
     markup = types.InlineKeyboardMarkup()
     for item in items:
