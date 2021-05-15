@@ -48,11 +48,11 @@
 
             "production" :
             {
-                "host" : "ec2-54-220-35-19.eu-west-1.compute.amazonaws.com",
-                "database" : "d9a5qf332rvd60", 
-                "user" : "svcsvcnqpcihzf",
+                "host" : "ec2-34-252-251-16.eu-west-1.compute.amazonaws.com",
+                "database" : "dck5ab2bh2maq8", 
+                "user" : "eimhjqlhsuvtpu",
                 "port" : 5432,
-                "password" : "d24a90027d702d66f15d5b4eb658eecb672b202d0af5934f82b3aa933373371a"
+                "password" : "3f28e44affc43038dd7ae342e5ba10427858ba580addc4d448bcf7f4238bc772"
             }
         },
         
