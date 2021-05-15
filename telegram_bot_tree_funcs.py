@@ -27,15 +27,16 @@ async def select_date(chat_id):
     sql_result = db_helper.do_sql(sql, [chat_id])
     print (sql_result)
     if len(sql_result) > 0:
-        sql = "DELETE FROM client_order WHERE client_id = %s"
         sql_result = db_helper.do_sql(sql, [chat_id])
         text = "Вкажіть дату й час, коли хочете отримати замовлення.\nМінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів"
     else:
-        text = "Спершу беріть смаколики для замовлення, щоб було, що оформляти 😊"
+        text = "Спершу оберіть смаколики для замовлення, щоб було, що оформляти 😊"
         set_user_state(chat_id, [None, None, None])
     await bot.send_message(chat_id, text)          
 
 async def finish_order(chat_id):
+    sql = "DELETE FROM client_order WHERE client_id = %s"
+    db_helper.execute(sql, [chat_id])
     text = "Замовлення прийнято! З вами скоро зв'яжеться кондитер, щоб все детально обговорити" 
     await bot.send_message(chat_id, text)
     text = "Хочете смаколиків 🧞?"
