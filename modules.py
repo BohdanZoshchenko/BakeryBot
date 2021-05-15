@@ -3,7 +3,6 @@ import logging
 from os import stat
 from inspect import signature, iscoroutinefunction, isasyncgenfunction
 from typing import Dict
-from flask import Flask, request
 import asyncio
 import nest_asyncio
 from aiogram import Bot, types
