@@ -36,7 +36,7 @@ async def select_date(chat_id):
 
 async def finish_order(chat_id):
     sql = "DELETE FROM client_order WHERE client_id = %s"
-    db_helper.execute(sql, [chat_id])
+    db_helper.do_sql(sql, [chat_id])
     text = "Замовлення прийнято! З вами скоро зв'яжеться кондитер, щоб все детально обговорити" 
     await bot.send_message(chat_id, text)
     text = "Хочете смаколиків 🧞?"
