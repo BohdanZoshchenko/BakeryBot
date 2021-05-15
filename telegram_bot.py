@@ -434,9 +434,6 @@ async def main():
         WEBAPP_HOST = '0.0.0.0'
         WEBAPP_PORT = int(os.getenv('PORT'))
 
-        logger = Dispatcher.logger
-        logger.setLevel(logging.INFO)
-
         logging.basicConfig(level=logging.INFO)
         
         start_webhook(dispatcher=dp, 
