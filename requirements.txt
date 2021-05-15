@@ -19,8 +19,6 @@ pyTelegramBotAPI==3.7.7
 python-telegram-bot==13.4.1
 virtualenv==20.4.4
 waitress
-instascrape
-instapy
 aiogram
 asyncio
 nest_asyncio
