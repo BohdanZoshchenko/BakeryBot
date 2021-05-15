@@ -1,7 +1,7 @@
 from inspect import isawaitable
 from modules import *
 import telegram_bot_tree_funcs as bot_helper
-
+from telegram_bot_tree_funcs import get_user_state, set_user_state
 from settings import *
 
 #### most of defs make without async/await (except callback and message handler)
@@ -165,9 +165,13 @@ async def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
         # funnel entry
         f_keys = funnels.keys()
         for key in f_keys:
-            if (key+"%") in callb == "%":
+            print("key:"+key)
+            if (key+"%") in callb:
                 p = callb[len(key)+1:len(callb)]
                 await start_funnel(chat_id, call_info=key, param=[p])
+                return
+            elif key==callb:
+                await start_funnel(chat_id, call_info=key, param=[])
                 return
             else:
                 set_user_state(chat_id, None)
@@ -193,25 +197,6 @@ async def execute_script(func_name, chat_id=None, sql=None, sql_result=None, par
         await eval(script, globals(), locals())
     else:
         eval(script, globals(), locals())
-
-def set_user_state(chat_id, state):
-    if state == None:
-        state = [None, None, None]
-    level = str(state[0])
-    funnel = str(state[1])
-    params = state[2]
-    db_helper.do_sql(bot_tree["database"]["set_user_state"], 
-                            [chat_id, level, funnel, params, level, funnel, params])
-
-def get_user_state(chat_id):
-    sql_result = db_helper.do_sql(
-        bot_tree["database"]["get_user_state"], [chat_id])
-    if len(sql_result) == 0:
-        return None
-    if len (sql_result[0]) != 3:
-        return None
-    state = [sql_result[0][0], sql_result[0][1], sql_result[0][2]]
-    return state
 
 async def play_funnel_level(chat_id, state, msg=None):
     if state is None or state == [None, None, None]:

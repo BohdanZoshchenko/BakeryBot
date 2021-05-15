@@ -2,15 +2,57 @@
 from modules import *
 from settings import *
 
+def set_user_state(chat_id, state):
+    if state == None:
+        state = [None, None, None]
+    level = str(state[0])
+    funnel = str(state[1])
+    params = state[2]
+    db_helper.do_sql(bot_tree["database"]["set_user_state"], 
+                            [chat_id, level, funnel, params, level, funnel, params])
+
+def get_user_state(chat_id):
+    sql_result = db_helper.do_sql(
+        bot_tree["database"]["get_user_state"], [chat_id])
+    if len(sql_result) == 0:
+        return None
+    if len (sql_result[0]) != 3:
+        return None
+    state = [sql_result[0][0], sql_result[0][1], sql_result[0][2]]
+    return state
+
 async def select_date(chat_id):
-    text = "Вкажіть дату й час, коли хочете отримати замовлення.\nМінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів"
+    state = get_user_state(chat_id)
+    sql =  "SELECT * FROM client_order WHERE client_id = %s"
+    sql_result = db_helper.do_sql(sql, [chat_id])
+    print (sql_result)
+    if len(sql_result) > 0:
+        sql = "DELETE FROM client_order WHERE client_id = %s"
+        sql_result = db_helper.do_sql(sql, [chat_id])
+        text = "Вкажіть дату й час, коли хочете отримати замовлення.\nМінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів"
+    else:
+        text = "Спершу беріть смаколики для замовлення, щоб було, що оформляти 😊"
+        set_user_state(chat_id, [None, None, None])
     await bot.send_message(chat_id, text)          
 
 async def finish_order(chat_id):
     text = "Замовлення прийнято! З вами скоро зв'яжеться кондитер, щоб все детально обговорити" 
     await bot.send_message(chat_id, text)
-    text = ""
-    await bot.send_message(chat_id, text)
+    text = "Хочете смаколиків 🧞?"
+    inline_buttons = [
+                        [ ["Замовити смаколики", "order"] ],
+                        [ ["Інфо", "info_in_telegram"] ]
+                     ]
+    inline_keyboard = types.InlineKeyboardMarkup()
+    rows = inline_buttons
+    for row in rows:
+        buttons_row = []
+        for button in row:
+            buttons_row.append(types.InlineKeyboardButton(
+                text=button[0], callback_data=button[1]))
+        inline_keyboard.row(*buttons_row)
+    markup = inline_keyboard
+    await bot.send_message(chat_id, text, reply_markup=markup)
 
 async def show_items(chat_id, sql_result):
     print("items")
@@ -63,6 +105,9 @@ async def order_item_mass(chat_id, state, sql, param):
     text = "*"+ name+"\n"
     text+= str(mass) + " кг x " + str(price) + " = "
     text+= str(sum) + " ГРН + за декор окремо*"
+
+    sql = "INSERT INTO client_order VALUES(%s, %s)"
+    db_helper.do_sql(sql, [chat_id, text])
     text+="\nЧудово! Ви замовите ще щось чи оформите те, що є?"
 
     inline_kb = types.InlineKeyboardMarkup(row_width=1)
@@ -70,6 +115,7 @@ async def order_item_mass(chat_id, state, sql, param):
     inline_kb.add(types.InlineKeyboardButton('Оформити', callback_data='order_info'))
 
     await bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=inline_kb)
+    
 
 async def handle_order():
     pass
