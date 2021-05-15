@@ -22,3 +22,4 @@ waitress
 aiogram
 asyncio
 nest_asyncio
+emoji
