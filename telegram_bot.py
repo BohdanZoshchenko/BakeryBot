@@ -160,12 +160,12 @@ async def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
     await add_admin_button(chat_id)
 
     callb = callback.data
-
+    print("Callback:"+callback.data)
     if callb != "":
         # funnel entry
         f_keys = funnels.keys()
         for key in f_keys:
-            if key in callb and callb[len(key)] == "%":
+            if (key+"%") in callb == "%":
                 p = callb[len(key)+1:len(callb)]
                 await start_funnel(chat_id, call_info=key, param=[p])
                 return
@@ -415,7 +415,7 @@ async def add_admin_button(chat_id):
                 await bot.send_message(chat_id, text = "Ви - адміністратор. Щоб відкрити адмін-панель, натисніть кнопку Адмін-панель на клавіатурі", reply_markup=admin_keyboard)
                 db_helper.do_sql(bot_tree["database"]["set_keyboard_created"], [True, chat_id])
 
-@dp.message_handler()               
+@dp.message_handler()
 async def admin_mode_on(message : types.Message):
     if message.text != "Адмін-панель":
         return
