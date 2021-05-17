@@ -92,8 +92,7 @@ async def handle_unknown_input(chat_id):
 async def handle_user_messages_and_simple_buttons(message: types.Message):
     chat_id = message.chat.id
 
-    if await add_admin_button(chat_id):
-        return
+    await add_admin_button(chat_id)
 
     gotos: Dict = bot_tree["user"]["simple_gotos"]
     commands: Dict = bot_tree["user"]["commands"]
