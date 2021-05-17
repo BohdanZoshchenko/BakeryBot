@@ -381,8 +381,10 @@ def get_funnel_level_content(chat_id, state):
 
 async def add_admin_button(chat_id):
     admin_id_list = db_helper.do_sql(bot_tree["database"]["get_admins"], [])
+    print(chat_id)
     if len(admin_id_list)>0:
         for i in admin_id_list:
+            print(i)
             if i[0] == chat_id:
                 #if db_helper.do_sql(bot_tree["database"]["get_keyboard_created"], [chat_id])[0][0]:
                 #    return
