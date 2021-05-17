@@ -92,7 +92,8 @@ async def handle_unknown_input(chat_id):
 async def handle_user_messages_and_simple_buttons(message: types.Message):
     chat_id = message.chat.id
 
-    await add_admin_button(chat_id)
+    if await add_admin_button(chat_id):
+        return
 
     gotos: Dict = bot_tree["user"]["simple_gotos"]
     commands: Dict = bot_tree["user"]["commands"]
@@ -121,20 +122,16 @@ async def handle_user_messages_and_simple_buttons(message: types.Message):
                             await handle_goto(chat_id, goto, gotos,
                                         simple_buttons, message=m)
                         else:
-                            if message.text != "Адмін-панель":
-                                await handle_unknown_input(chat_id)
+                            await handle_unknown_input(chat_id)
                             #(goto + ":Goto undefined")
                     else:
-                        if message.text != "Адмін-панель":
-                            await handle_unknown_input(chat_id)
+                        await handle_unknown_input(chat_id)
                         #(command + "Command has no goto")
                 else:
-                    if message.text != "Адмін-панель":
-                            await handle_unknown_input(chat_id)
+                    await handle_unknown_input(chat_id)
                     #(command + ":Command undefined")
             else:
-                if message.text != "Адмін-панель":
-                    await handle_unknown_input(chat_id)
+                await handle_unknown_input(chat_id)
                 #("No command body")
         else:
             # simple buttons and messages
@@ -147,11 +144,9 @@ async def handle_user_messages_and_simple_buttons(message: types.Message):
                         await handle_goto(chat_id, goto, gotos,
                             simple_buttons, message=m)
                         return
-            if message.text != "Адмін-панель":
-                await handle_unknown_input(chat_id)
-    else:
-        if message.text != "Адмін-панель":
             await handle_unknown_input(chat_id)
+    else:
+        await handle_unknown_input(chat_id)
 
 @dp.callback_query_handler(lambda callback_query:True)
 async def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
@@ -399,6 +394,8 @@ async def add_admin_button(chat_id):
                 admin_keyboard.add(button)
                 await bot.send_message(chat_id, text = "Ви - адміністратор. Щоб відкрити адмін-панель, натисніть кнопку Адмін-панель на клавіатурі", reply_markup=admin_keyboard)
                 db_helper.do_sql(bot_tree["database"]["set_keyboard_created"], [True, chat_id])
+                return True
+    return False
 
 @dp.message_handler()
 async def admin_mode_on(message : types.Message):
@@ -413,6 +410,8 @@ async def admin_mode_on(message : types.Message):
                 #    return
                 set_user_state(message.chat.id, [None, None, None])
                 handle_goto(message.chat.id, "start", gotos=bot_tree["admin"])
+                
+                
         
 @dp.callback_query_handler(lambda callback_query:True)
 async def quit_admin(callback):
