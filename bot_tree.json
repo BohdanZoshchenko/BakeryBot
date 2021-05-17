@@ -11,10 +11,8 @@
         "get_keyboard_created" : "SELECT keyboard_created FROM admin WHERE user_id = %s",
         "create_tables" :
         [
-            "DROP TABLE admin",
             "CREATE TABLE IF NOT EXISTS admin (user_id integer NOT NULL, admin_on boolean NULL, keyboard_created boolean NULL)",
 
-            "INSERT INTO admin (user_id, admin_on, keyboard_created) VALUES (457179604, true, false)",
             "CREATE TABLE IF NOT EXISTS promotion (name varchar NOT NULL, text varchar NOT NULL, photos bytea[] NULL)",
             
             "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, level varchar NULL, funnel varchar NULL, params varchar[] NULL, PRIMARY KEY (chat_id))",

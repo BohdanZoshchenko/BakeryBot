@@ -384,10 +384,10 @@ async def add_admin_button(chat_id):
     if len(admin_id_list)>0:
         for i in admin_id_list:
             if i[0] == chat_id:
-                if db_helper.do_sql(bot_tree["database"]["get_keyboard_created"], [chat_id])[0][0]:
-                    return
-                if db_helper.do_sql(bot_tree["database"]["get_admin_on"], [chat_id])[0][0]:
-                    return
+                #if db_helper.do_sql(bot_tree["database"]["get_keyboard_created"], [chat_id])[0][0]:
+                #    return
+                #if db_helper.do_sql(bot_tree["database"]["get_admin_on"], [chat_id])[0][0]:
+                #    return
                 admin_keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)
                 button = types.KeyboardButton("Адмін-панель")
                 admin_keyboard.add(button)
