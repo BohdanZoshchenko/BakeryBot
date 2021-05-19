@@ -70,14 +70,14 @@ async def handle_goto(chat_id, goto: str, gotos: Dict, simple_buttons=None, para
     if "func" in gotos[goto].keys():
         func = gotos[goto]["func"]
         state = get_user_state(chat_id)
-        await execute_script(func, chat_id, sql, sql_result, param, state)
+        await execute_script(func, chat_id, sql, sql_result, param, state, message)
 
         return
     # Block end
 
     # If there was a script, this message will not be sent
     if text:
-        await bot.send_message(chat_id, text, reply_markup=markup, parse_mode="html")
+        await bot.send_message(chat_id, text, reply_markup=markup,  parse_mode="Markdown")
 
 
 async def start_funnel(chat_id, call_info=None, msg=None, param=None):
@@ -92,7 +92,7 @@ async def handle_unknown_input(chat_id):
 async def handle_user_messages_and_simple_buttons(message: types.Message):
     chat_id = message.chat.id
 
-    await add_admin_button(chat_id)
+    #await add_admin_button(chat_id)
 
     gotos: Dict = bot_tree["user"]["simple_gotos"]
     commands: Dict = bot_tree["user"]["commands"]
@@ -151,7 +151,7 @@ async def handle_user_messages_and_simple_buttons(message: types.Message):
 async def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
     chat_id = callback.message.chat.id
 
-    await add_admin_button(chat_id)
+    #await add_admin_button(chat_id)
 
     callb = callback.data
     print("Callback:"+callback.data)
@@ -182,7 +182,7 @@ async def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
                         simple_buttons, param)
                     return
 
-async def execute_script(func_name, chat_id=None, sql=None, sql_result=None, param=None, state=None):
+async def execute_script(func_name, chat_id=None, sql=None, sql_result=None, param=None, state=None, message= None):
     func_name = "bot_helper." + func_name
     func = eval(func_name)
     script = func_name + \
@@ -204,7 +204,7 @@ async def play_funnel_level(chat_id, state, msg=None):
     if msg is None and level is not None:
         level = int(level)
         if level == 0:
-            await funnel_execute(chat_id, level, funnel, params, x=None)
+            await funnel_execute(chat_id, level, funnel, params, x=None, msg = msg)
             return True
         else:
             return False
@@ -223,7 +223,7 @@ async def play_funnel_level(chat_id, state, msg=None):
             valid_info = is_value_valid(msg, level_content)
             if valid_info[0] != "ok":
                 await on_wrong_input(chat_id, valid_info[0], level_content)
-                await funnel_execute(chat_id, level - 1, funnel, params, x=None)
+                await funnel_execute(chat_id, level - 1, funnel, params, x=None, msg=msg)
                 return False
             else:
                 x = valid_info[1]
@@ -234,19 +234,19 @@ async def play_funnel_level(chat_id, state, msg=None):
                     state[2].append(x)
         else:
             return False
-        await funnel_execute(chat_id, level, funnel, params, x)
+        await funnel_execute(chat_id, level, funnel, params, x, msg)
 
         return True
     else:
         return False
 
-async def funnel_execute(chat_id, level, funnel, params, x=None):
+async def funnel_execute(chat_id, level, funnel, params, x=None, msg=None):
     state = [level, funnel, params]
     level_content = get_funnel_level_content(chat_id, state)
     if level_content is None:
         return False
     if "text" in level_content.keys():
-        await bot.send_message(chat_id, level_content["text"], parse_mode="html")
+        await bot.send_message(chat_id, level_content["text"],  parse_mode="Markdown")
     if "func" in level_content.keys():
         s = state
         func = level_content["func"]
@@ -261,7 +261,7 @@ async def funnel_execute(chat_id, level, funnel, params, x=None):
             else:
                 p = params[len(params)-1]
         await execute_script(func, chat_id, sql,
-            sql_result=None, param=p, state=s)
+            sql_result=None, param=p, state=s, message=msg)
 
     level = int(level)
     level += 1
@@ -349,7 +349,7 @@ async def on_wrong_input(chat_id, error: str, level_content):
 
     if x and error_exists(error, level_content):
         text = level_content["errors"][error]
-    await bot.send_message(chat_id, text, parse_mode="html")
+    await bot.send_message(chat_id, text,  parse_mode="Markdown")
 
 
 def to_state(level, funnel, params):
@@ -378,46 +378,6 @@ def get_funnel_level_content(chat_id, state):
             level_content = None
             set_user_state(chat_id, None)
     return level_content
-
-async def add_admin_button(chat_id):
-    admin_id_list = db_helper.do_sql(bot_tree["database"]["get_admins"], [])
-    print(chat_id)
-    if len(admin_id_list)>0:
-        for i in admin_id_list:
-            print(i)
-            if i[0] == chat_id:
-                #if db_helper.do_sql(bot_tree["database"]["get_keyboard_created"], [chat_id])[0][0]:
-                #    return
-                #if db_helper.do_sql(bot_tree["database"]["get_admin_on"], [chat_id])[0][0]:
-                #    return
-                admin_keyboard = types.ReplyKeyboardMarkup(resize_keyboard = True)
-                button = types.KeyboardButton("Адмін-панель")
-                admin_keyboard.add(button)
-                await bot.send_message(chat_id, text = "Ви - адміністратор. Щоб відкрити адмін-панель, натисніть кнопку Адмін-панель на клавіатурі", reply_markup=admin_keyboard)
-                db_helper.do_sql(bot_tree["database"]["set_keyboard_created"], [True, chat_id])
-                return True
-    return False
-
-@dp.message_handler()
-async def admin_mode_on(message : types.Message):
-    if message.text != "Адмін-панель":
-        return
-    admin_id_list = db_helper.do_sql(bot_tree["database"]["get_admins"], [])
-    if len(admin_id_list)>0:
-        for i in admin_id_list:
-            if i[0] == message.chat.id:
-                db_helper.do_sql(bot_tree["database"]["set_admin_on"], [True, message.chat.id])
-                #if db_helper.do_sql(bot_tree["database"]["get_admin_on"], [message.chat.id])[0][0]:
-                #    return
-                set_user_state(message.chat.id, [None, None, None])
-                handle_goto(message.chat.id, "start", gotos=bot_tree["admin"])
-                
-                
-        
-@dp.callback_query_handler(lambda callback_query:True)
-async def quit_admin(callback):
-    if callback.data == "quit_admin":
-        db_helper.do_sql(bot_tree["database"]["set_admin_on"], [False, callback.message.chat.id])
 
 async def on_startup(dp):
     logging.warning(

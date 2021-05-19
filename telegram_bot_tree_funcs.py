@@ -21,33 +21,46 @@ def get_user_state(chat_id):
     state = [sql_result[0][0], sql_result[0][1], sql_result[0][2]]
     return state
 
-async def select_date(chat_id):
+async def form_order(chat_id):
     state = get_user_state(chat_id)
-    sql =  "SELECT * FROM client_order WHERE client_id = %s"
+    sql =  "SELECT * FROM client_order WHERE client_id = %s AND sent = FALSE"
     sql_result = db_helper.do_sql(sql, [chat_id])
-    print (sql_result)
     if len(sql_result) > 0:
-        sql_result = db_helper.do_sql(sql, [chat_id])
-        text = "Вкажіть дату й час, коли хочете отримати замовлення.\nМінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів"
-    else:
-        #text = "Спершу оберіть смаколики для замовлення, щоб було, що оформляти 😊"
-        #set_user_state(chat_id, [None, None, None])
-        return
-    await bot.send_message(chat_id, text)          
+        sum = 0.0
+        desc = ""
+        for row in sql_result:
+            sum += row[2]
+            desc += row[1] + "\n"
+        sum_text = desc + "*Ваше замовлення на суму " + price_format(sum) + " ГРН. + декор*\n"
+        text = sum_text + "*ОБОВ'ЯЗКОВО* вкажіть дату й час, коли хочете отримати замовлення.\nМінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів"
+        inline_buttons = [
+                        [ ["Скасувати замовлення", "cancel_orders"] ]
+                     ]
+        inline_keyboard = types.InlineKeyboardMarkup()
+        rows = inline_buttons
+        for row in rows:
+            buttons_row = []
+            for button in row:
+                buttons_row.append(types.InlineKeyboardButton(
+                    text=button[0], callback_data=button[1]))
+            inline_keyboard.row(*buttons_row)
+        markup = inline_keyboard
+        await bot.send_message(chat_id, text, reply_markup = markup, parse_mode="Markdown") 
+             
 
 async def save_date(chat_id, param):
-    pass
+    sql =  "INSERT INTO client_data (chat_id, datetime) VALUES(%s,%s) ON CONFLICT (chat_id) DO UPDATE SET datetime = %s"
+    db_helper.do_sql(sql, [chat_id, param, param])
 
 async def save_phone(chat_id, param):
-    pass
+    sql =  "UPDATE client_data SET phone = %s WHERE chat_id = %s"
+    db_helper.do_sql(sql, [param, chat_id])
 
-async def finish_order(chat_id, param):
+async def finish_order(chat_id, param, message):
+    sql =  "UPDATE client_data SET name = %s WHERE chat_id = %s"
+    db_helper.do_sql(sql, [param, chat_id])
 
-    "SAVE PARAM (NAME) TO DB"
 
-
-    sql = "DELETE FROM client_order WHERE client_id = %s"
-    db_helper.do_sql(sql, [chat_id])
     text = "Замовлення прийнято! З вами скоро зв'яжеться кондитер, щоб все детально обговорити" 
     await bot.send_message(chat_id, text)
     text = "Хочете смаколиків 🧞?"
@@ -66,7 +79,38 @@ async def finish_order(chat_id, param):
     markup = inline_keyboard
     await bot.send_message(chat_id, text, reply_markup=markup)
 
-    "SEND MESSAGES TO ADMINS"
+    await send_orders_to_admin(chat_id, message)
+
+async def send_orders_to_admin(client_id, message):
+    sql = "SELECT description, price FROM client_order WHERE client_id = %s AND sent = FALSE"
+    orders = db_helper.do_sql(sql, [client_id])
+    sum_order = ""
+    sum = 0.0
+    for row in orders:
+        sum_order += row[0] + "\n"
+        sum += row[1]
+    sum_order += "*Всього на суму: " + price_format(sum) + " ГРН" + " + декор*\n*Telegram:* @" + message.chat.username
+    sql = "SELECT * FROM client_data WHERE chat_id = %s"
+    sql_result = db_helper.do_sql(sql, [client_id])
+    row = sql_result[0]
+    sum_order += "\n*Вказаний час:* " + sql_result[0][1]
+    sum_order += "\n*Вказаний телефон:* " + sql_result[0][2]
+    sum_order += "\n*Вказане ім'я:* " + sql_result[0][3]
+    sql = "UPDATE client_data SET price = %s, order_desc = %s WHERE chat_id = %s"
+    
+    db_helper.do_sql(sql, [sum, sum_order, client_id])
+    sql = "SELECT user_id FROM admin"
+    admins =  db_helper.do_sql(sql, [])
+    print("admin len" + str(len(admins)))
+    for row in admins:
+        print("admin:"+str(row[0]))
+        text = sum_order
+        await bot.send_message(row[0], text, parse_mode="Markdown")
+
+    print("updating client_order")
+    sql = "UPDATE client_order SET sent=TRUE WHERE client_id = %s AND sent = FALSE"
+    db_helper.do_sql(sql, [client_id])
+    print("updating 2")
 
 async def show_items(chat_id, sql_result):
     items = sql_result
@@ -119,8 +163,8 @@ async def order_item_mass(chat_id, state, sql, param):
     text+= str(mass) + " кг x " + str(price) + " = "
     text+= str(sum) + " ГРН + за декор окремо*"
 
-    sql = "INSERT INTO client_order VALUES(%s, %s)"
-    db_helper.do_sql(sql, [chat_id, text])
+    sql = "INSERT INTO client_order VALUES(%s, %s, %s)"
+    db_helper.do_sql(sql, [chat_id, text, float(sum)])
     text+="\nЧудово! Ви замовите ще щось чи оформите те, що є?"
 
     inline_kb = types.InlineKeyboardMarkup(row_width=1)
@@ -129,6 +173,24 @@ async def order_item_mass(chat_id, state, sql, param):
 
     await bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=inline_kb)
     
+async def cancel_orders(chat_id):
+    sql = "DELETE FROM client_order WHERE client_id = %s AND sent = FALSE"
+    db_helper.do_sql(sql, [chat_id])
+    text = "Ваші останні замовлення скасовано."
+    inline_buttons = [
+                        [ ["Замовити смаколики", "order"] ],
+                        [ ["Інфо", "info_in_telegram"] ]
+                     ]
+    inline_keyboard = types.InlineKeyboardMarkup()
+    rows = inline_buttons
+    for row in rows:
+        buttons_row = []
+        for button in row:
+            buttons_row.append(types.InlineKeyboardButton(
+                text=button[0], callback_data=button[1]))
+        inline_keyboard.row(*buttons_row)
+    markup = inline_keyboard
+    await bot.send_message(chat_id, text, reply_markup=markup)
 
 async def handle_order():
     pass

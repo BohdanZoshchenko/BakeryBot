@@ -4,22 +4,19 @@
 
     "database" : 
     {
-        "delete_client_table" : "DROP TABLE client",
-        "set_admin_on" : "UPDATE admin SET admin_on = %s WHERE  user_id = %s",
-        "get_admin_on" : "SELECT admin_on FROM admin WHERE user_id = %s",
-        "set_keyboard_created" : "UPDATE admin SET keyboard_created = %s WHERE  user_id = %s",
-        "get_keyboard_created" : "SELECT keyboard_created FROM admin WHERE user_id = %s",
         "create_tables" :
         [
-            "CREATE TABLE IF NOT EXISTS admin (user_id integer NOT NULL, admin_on boolean NULL, keyboard_created boolean NULL)",
+            "CREATE TABLE IF NOT EXISTS admin (user_id integer NOT NULL)",
 
             "CREATE TABLE IF NOT EXISTS promotion (name varchar NOT NULL, text varchar NOT NULL, photos bytea[] NULL)",
             
             "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, level varchar NULL, funnel varchar NULL, params varchar[] NULL, PRIMARY KEY (chat_id))",
     
-            "CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, price integer NOT NULL DEFAULT '450')",
+            "CREATE TABLE IF NOT EXISTS client_data (chat_id integer NULL, datetime varchar NULL, phone varchar NULL, name varchar NULL, order_desc varchar NULL, price integer NULL, PRIMARY KEY (chat_id))",
+
+            "CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, category varchar NULL, price integer NOT NULL DEFAULT '450')",
             
-            "CREATE TABLE IF NOT EXISTS client_order (client_id integer NOT NULL, description varchar NOT NULL)"
+            "CREATE TABLE IF NOT EXISTS client_order (client_id integer NOT NULL, description varchar NOT NULL, price float NOT NULL, sent boolean DEFAULT FALSE)"
         ],
 
         "set_user_state" : "INSERT INTO client VALUES(%s,%s,%s,%s) ON CONFLICT (chat_id) DO UPDATE SET level = %s, funnel = %s, params = %s",
@@ -123,7 +120,7 @@
 
             "info_in_telegram" :
             {
-                "text" : "Мінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів\nБронювання здійснюється після уточнення:\n-дати та часу\n-ваги та начинки\n-декору\n-передоплати 50 відсотків від вартості виробу\nДЕКОР ОПЛАЧУЄТЬСЯ ОКРЕМО\nДОСТАВКА - САМОВИВІЗ/ ТАКСІ\nЗ додаткових питань пишіть кондитерці Марії ****** або телефонуйте їй ******",
+                "text" : "Мінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів\nБронювання здійснюється після уточнення:\n-дати та часу\n-ваги та начинки\n-декору\n-передоплати 50 відсотків від вартості виробу\nДЕКОР ОПЛАЧУЄТЬСЯ ОКРЕМО\nДОСТАВКА - САМОВИВІЗ/ ТАКСІ\nЗ додаткових питань пишіть кондитерці Марії @MariaYav або телефонуйте їй +380 63 763 21 33",
                 "inline_buttons":[[["Назад", "new_greeting"]]]
             },
 
@@ -142,6 +139,11 @@
                     [ ["Замовити смаколики", "order"] ],
                     [ ["Інфо", "info_in_telegram"] ]
                 ]
+            },
+
+            "cancel_orders":
+            {
+                "func" : "cancel_orders"
             }
         },
         
@@ -163,19 +165,18 @@
             {
                 "0" : 
                 {
-                    "input_type" : "text",
-                    "func" : "select_date"
+                    "func" : "form_order"
                 }, 
                 "1" : 
                 {
                     "input_type" : "text",
-                    "text" : "Тепер дайте свій номер для зв'язку",
+                    "text" : "Тепер *ОБОВ'ЯЗКОВО* дайте свій номер для зв'язку",
                     "func" : "save_date"
                 },
                 "2" :
                 {
                     "input_type" : "text",
-                    "text" : "Наостанок, як вас звуть?",
+                    "text" : "Наостанок, як вас звуть? *ОБОВ'ЯЗКОВО* напишіть",
                     "func" : "save_phone"
                 },
                 "3" :
