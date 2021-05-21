@@ -6,6 +6,7 @@
     {
         "create_tables" :
         [
+            "UPDATE item SET category='Торти'",
             "CREATE TABLE IF NOT EXISTS admin (user_id integer NOT NULL)",
 
             "CREATE TABLE IF NOT EXISTS promotion (name varchar NOT NULL, text varchar NOT NULL, photos bytea[] NULL)",
@@ -128,7 +129,7 @@
             {
                 "description" : "Create buttons from DB items entries",
                 "sql" : "SELECT name, price FROM item ORDER BY price",
-                "func" : "show_items"
+                "func" : "show_categories"
             },
 
             "new_greeting" :

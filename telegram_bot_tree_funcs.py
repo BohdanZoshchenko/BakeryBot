@@ -112,6 +112,21 @@ async def send_orders_to_admin(client_id, message):
     db_helper.do_sql(sql, [client_id])
     print("updating 2")
 
+async def show_categories(chat_id):
+    sql = "SELECT category FROM item"
+    result = db_helper.do_sql(sql, [])
+    categories = []
+    for row in result:
+        if row[0] not in categories:
+            categories.append(row[0])
+    markup = types.InlineKeyboardMarkup()
+    for category in categories:
+        button = types.InlineKeyboardButton(
+            text=str(category), callback_data=category)
+        markup.add(button)
+    await bot.send_message(chat_id, "Обирайте 🧐", reply_markup=markup)
+
+
 async def show_items(chat_id, sql_result):
     items = sql_result
     markup = types.InlineKeyboardMarkup()
