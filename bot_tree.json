@@ -128,7 +128,6 @@
             "order" :
             {
                 "description" : "Create buttons from DB items entries",
-                "sql" : "SELECT name, price FROM item ORDER BY price",
                 "func" : "show_categories"
             },
 
@@ -150,9 +149,13 @@
         
         "composite_callbacks" :
         {
+            "show_items" :
+            {
+                "func" : "show_items"
+            },
             "show_item" : 
             {
-                "sql" : "SELECT name, description, photo, price FROM item WHERE name=%s",
+                "sql" : "SELECT name, description, photo, price, category FROM item WHERE name=%s",
                 "func" : "show_single_item"
             },
             "order" :
@@ -187,7 +190,7 @@
                 }
             },
 
-            "order_item" :
+            "Торти" :
             {
                 "0" :
                 {
@@ -195,7 +198,7 @@
                 },
                 "1" : 
                 {
-                    "sql" : "SELECT price FROM item WHERE name=%s",
+                    "sql" : "SELECT price, category FROM item WHERE name=%s",
                     "func" : "order_item_mass",
 
                     "errors":
@@ -209,6 +212,29 @@
                     "min" : 2,
                     "max" : 102,
                     "after_comma" : 2
+                }
+            },
+            "Капкейки" :
+            {
+                "0" :
+                {
+                    "func" : "order_item_start"
+                },
+                "1" : 
+                {
+                    "sql" : "SELECT price, category FROM item WHERE name=%s",
+                    "func" : "order_item_mass",
+
+                    "errors":
+                    {
+                        "too_little" : "Замала кількість. Спробуйте ще",
+                        "too_big" : "Дуже велика кількість. Спробуйте ще",
+                        "type_mismatch" : "Я можу прийняти тільки ціле число. Наприклад, 10"
+                    },
+                    
+                    "input_type" : "int",
+                    "min" : 6,
+                    "max" : 106
                 }
             }
         }

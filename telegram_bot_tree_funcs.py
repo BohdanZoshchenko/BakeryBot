@@ -122,31 +122,41 @@ async def show_categories(chat_id):
     markup = types.InlineKeyboardMarkup()
     for category in categories:
         button = types.InlineKeyboardButton(
-            text=str(category), callback_data=category)
+            text=str(category), callback_data="show_items%"+category)
         markup.add(button)
     await bot.send_message(chat_id, "Обирайте 🧐", reply_markup=markup)
 
 
-async def show_items(chat_id, sql_result):
+async def show_items(chat_id, param):
+    sql = "SELECT name, price FROM item WHERE category=%s ORDER BY price"
+    category = param[0]
+    print(param)
+    emoji = emojis[category]
+    dim = dims[category]
+    sql_result = db_helper.do_sql(sql, [category])
     items = sql_result
     markup = types.InlineKeyboardMarkup()
     for item in items:
         button = types.InlineKeyboardButton(
-            '🍰 '+ item[0]+' '+str(item[1]) + ' ГРН/КГ', callback_data='show_item%' + item[0])
+           emoji +' '+ item[0]+' '+str(item[1]) + ' ' + 'ГРН/'+dim, callback_data='show_item%' + item[0])
         markup.add(button)
     await bot.send_message(chat_id, "Обирайте 🧐", reply_markup=markup)
 
 
 async def show_single_item(chat_id, param, sql_result):
     item = sql_result[0]
+    category = item[4]
     text = '*'+param[0]+'*\n'
     text += str(item[1])+"\n" #description
-    text += str("Ціна: " + str(item[3]) + " ГРН/КГ + за декор окремо") + "\n"#price
+    text += str("Ціна: " + str(item[3]) + " ГРН/" +dims[category]+" + за декор окремо") + "\n"#price
     text += "Унікальний декор за вашими побажаннями" + "\n"
-    text += "Мінімальна вага до замовлення 2 кг"
+    if category == "Торти":
+        text += "Мінімальна вага до замовлення 2 кг"
+    elif category == 'Капкейки':
+        text += "Мінімальна кількість до замовлення 6 шт"
     markup = types.InlineKeyboardMarkup()
     order_button = types.InlineKeyboardButton(
-            'Замовити', callback_data='order_item%' + param[0])
+            'Замовити', callback_data=category+'%' + param[0])
     markup.add(order_button)
     info_button = types.InlineKeyboardButton(
             'Інфо', callback_data='info_in_telegram')
@@ -160,7 +170,12 @@ async def order_item_start(chat_id, state):
     funnel = state[1]
     params = state[2]
     name = params[0]
-    text ="*"+name+"*\nЯку вагу бажаєте (від 2 до 102 кілограмів 😊)? Наприклад, 3.25"
+    sql_res = db_helper.do_sql('SELECT category FROM item WHERE name=%s', [name])
+    category = sql_res[0][0]
+    if category == "Торти":
+        text ="*"+name+"*\nЯку вагу бажаєте (від 2 до 102 кілограмів 😊)? Наприклад, 3.25"
+    elif category == 'Капкейки':
+        text ="*"+name+"*\nЯку кількість бажаєте (від 6 до 106 штук 😊)? Наприклад, 10"
     await bot.send_message(chat_id, text, parse_mode="Markdown")
 
 async def order_item_mass(chat_id, state, sql, param):
@@ -170,12 +185,14 @@ async def order_item_mass(chat_id, state, sql, param):
     name = params[0]
     mass = param
 
-    price = db_helper.do_sql(sql, [name])[0][0]
+    res = db_helper.do_sql(sql, [name])
+    price = res[0][0]
+    category = res[0][1]
     sum = float(price)*float(mass)
     sum = price_format(sum)
 
     text = "*"+ name+"\n"
-    text+= str(mass) + " кг x " + str(price) + " = "
+    text+= str(mass) + " "+dims[category]+" x " + str(price) + " = "
     text+= str(sum) + " ГРН + за декор окремо*"
 
     sql = "INSERT INTO client_order VALUES(%s, %s, %s)"
@@ -207,9 +224,6 @@ async def cancel_orders(chat_id):
     markup = inline_keyboard
     await bot.send_message(chat_id, text, reply_markup=markup)
 
-async def handle_order():
-    pass
-
 def price_format(price):
     price = float(price)
     price = round(price, 2)
@@ -220,3 +234,6 @@ def price_format(price):
         price[1] += "0"
     price = price[0] + "." + price[1]
     return price
+
+emojis= {'Капкейки' : '🧁', 'Торти':'🍰'}
+dims = {'Капкейки' : 'ШТ', 'Торти':'КГ'}
