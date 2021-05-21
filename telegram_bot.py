@@ -4,7 +4,6 @@ import telegram_bot_tree_funcs as bot_helper
 from telegram_bot_tree_funcs import get_user_state, set_user_state
 from settings import *
 
-#### most of defs make without async/await (except callback and message handler)
 
 nest_asyncio.apply()
 

@@ -6,10 +6,9 @@
     {
         "create_tables" :
         [
-            "UPDATE item SET category='Торти'",
             "CREATE TABLE IF NOT EXISTS admin (user_id integer NOT NULL)",
 
-            "CREATE TABLE IF NOT EXISTS promotion (name varchar NOT NULL, text varchar NOT NULL, photos bytea[] NULL)",
+            "CREATE TABLE IF NOT EXISTS promotion (name varchar NOT NULL, text varchar NOT NULL, photo bytea[] NULL)",
             
             "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, level varchar NULL, funnel varchar NULL, params varchar[] NULL, PRIMARY KEY (chat_id))",
     
