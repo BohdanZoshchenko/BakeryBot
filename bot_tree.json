@@ -27,10 +27,6 @@
     "params":
     {
         "telegram_token" : "1793479610:AAFJBhZAGwlVbddGk-qt4dGHvEnpDn3R5C0",
-        "admin_password" : "_VpuVq`8tZy&M9_2",
-
-        "server_port" : 33507,
-        "url" : "https://bakerybotmariko.herokuapp.com/",
 
         "database" :
         {

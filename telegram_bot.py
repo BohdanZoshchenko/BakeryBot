@@ -392,9 +392,9 @@ async def main():
         # webserver settings
         WEBAPP_PORT = int(os.getenv('PORT'))
         WEBAPP_HOST = '0.0.0.0'
-        
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((WEBHOOK_HOST, WEBAPP_PORT))
+            s.bind((WEBHOOK_HOST, 5432))
             s.listen()
             conn, addr = s.accept()
             with conn:
