@@ -390,19 +390,8 @@ async def on_shutdown(dp):
 async def main():
     if "HEROKU" in list(os.environ.keys()):
         # webserver settings
-        WEBAPP_HOST = '0.0.0.0'
         WEBAPP_PORT = int(os.getenv('PORT'))
-
-        logging.basicConfig(level=logging.INFO)
-        
-        start_webhook(dispatcher=dp, 
-        webhook_path=WEBHOOK_PATH,
-        skip_updates=True,
-        on_startup=on_startup,
-        on_shutdown=on_shutdown,
-        host=WEBAPP_HOST,
-        port=WEBAPP_PORT)
-
+      
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((WEBAPP_HOST, WEBAPP_PORT))
             s.listen()
@@ -415,6 +404,20 @@ async def main():
                         break
                     if data.decode() == admin_password:
                         conn.sendall(os.environ['HEROKU_POSTGRESQL_PUCE_URL'].encode())
+      
+        WEBAPP_HOST = '0.0.0.0'
+
+        logging.basicConfig(level=logging.INFO)
+        
+        start_webhook(dispatcher=dp, 
+        webhook_path=WEBHOOK_PATH,
+        skip_updates=True,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown,
+        host=WEBAPP_HOST,
+        port=WEBAPP_PORT)
+
+        
     else:
         await bot.delete_webhook()
         executor.start_polling(dp, skip_updates = True)
