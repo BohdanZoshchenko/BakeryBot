@@ -394,8 +394,8 @@ async def main():
         WEBAPP_HOST = '0.0.0.0'
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((WEBHOOK_HOST, WEBAPP_PORT))
-            s.listen()
+            s.bind((WEBAPP_HOST, WEBAPP_PORT))
+            s.listen(8)
             conn, addr = s.accept()
             with conn:
                 print('Connected by', addr)
