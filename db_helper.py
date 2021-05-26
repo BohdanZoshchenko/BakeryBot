@@ -9,7 +9,7 @@ def do_sql(sql:str, fields=None, records_count_to_fetch:int=None):
     result = None
     conn = None
     if "HEROKU" in list(os.environ.keys()):
-        DATABASE_URL = os.environ['DATABASE_URL']
+        DATABASE_URL = os.environ['HEROKU_POSTGRESQL_PUCE_URL']
         conn = connect(DATABASE_URL, sslmode='require')
     else:
         conn = connect(host=conn_params["host"],\
