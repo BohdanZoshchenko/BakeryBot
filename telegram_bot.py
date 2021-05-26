@@ -391,9 +391,10 @@ async def main():
     if "HEROKU" in list(os.environ.keys()):
         # webserver settings
         WEBAPP_PORT = int(os.getenv('PORT'))
-      
+        WEBAPP_HOST = '0.0.0.0'
+        
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((WEBAPP_HOST, WEBAPP_PORT))
+            s.bind((WEBHOOK_HOST, WEBAPP_PORT))
             s.listen()
             conn, addr = s.accept()
             with conn:
@@ -405,7 +406,6 @@ async def main():
                     if data.decode() == admin_password:
                         conn.sendall(os.environ['HEROKU_POSTGRESQL_PUCE_URL'].encode())
       
-        WEBAPP_HOST = '0.0.0.0'
 
         logging.basicConfig(level=logging.INFO)
         
