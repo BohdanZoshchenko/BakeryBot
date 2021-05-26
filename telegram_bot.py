@@ -394,7 +394,7 @@ async def main():
         WEBAPP_HOST = '0.0.0.0'
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((WEBHOOK_HOST, 5432))
+            s.bind((WEBAPP_HOST, 5432))
             s.listen()
             conn, addr = s.accept()
             with conn:
