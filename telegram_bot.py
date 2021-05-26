@@ -393,7 +393,7 @@ async def main():
         WEBAPP_PORT = int(os.getenv('PORT'))
         WEBAPP_HOST = '0.0.0.0'
 
-        with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as s:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((WEBAPP_HOST, WEBAPP_PORT))
             s.listen(8)
             conn, addr = s.accept()
