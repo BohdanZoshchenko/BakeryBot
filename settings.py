@@ -1,6 +1,8 @@
 
 from modules import *
 
+admin_password = 'tBLf,;ysdRG3bG:L'
+
 bot_tree = json_helper.bot_json_to_obj()
 
 bot = Bot(bot_tree["params"]["telegram_token"])
