@@ -1,7 +1,7 @@
 # this module is NOT UNIVERSAL for different bots
 from modules import *
 from settings import *
-
+import math
 
 def set_user_state(chat_id, state):
     if state == None:
@@ -32,8 +32,8 @@ async def form_order(chat_id):
         sum = 0.0
         desc = ""
         for row in sql_result:
-            sum += row[2]
-            desc += row[1] + "\n"
+            sum += row[3]
+            desc += row[2] + "\n"
         sum_text = desc + "*Ваше замовлення на суму " + \
             price_format(sum) + " ГРН. + декор*\n"
         text = sum_text + "*ОБОВ'ЯЗКОВО* вкажіть дату й час, коли хочете отримати замовлення.\nМінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів"
@@ -86,6 +86,36 @@ async def finish_order(chat_id, param, message):
 
     await send_orders_to_admin(chat_id, message)
 
+async def admin_orders(chat_id, param, page_n = 1, page_size = 5):
+    if param is not None:
+        page_n = int(param[0])
+    
+    sql = "SELECT description, price FROM client_order WHERE sent = TRUE ORDER BY ID DESC LIMIT %s OFFSET %s"
+    count = page_size
+    start = (page_n-1) * page_size +1
+    orders = db_helper.do_sql(sql,[count, start])
+    for o in orders:
+        text = o[0]
+        await bot.send_message(chat_id, text, parse_mode="Markdown")
+    markup = types.InlineKeyboardMarkup()
+    btn1 = types.InlineKeyboardButton(
+            text="До новіших", callback_data="show_orders_page%" + str(page_n-1))
+    btn2 = types.InlineKeyboardButton(
+            text="До старіших", callback_data="show_orders_page%" + str(page_n+1))
+    btns = []
+
+    sql = "SELECT ID FROM client_order ORDER BY ID DESC LIMIT ALL OFFSET 1"
+    pages_count = len(db_helper.do_sql(sql))/page_size
+    if page_n > 1:
+        btns.append(btn1)
+    if page_n < pages_count:
+        btns.append(btn2)
+    markup.row(*btns)
+    markup.row(types.InlineKeyboardButton(
+        'Назад', callback_data="admin_show_categories"))
+    text = "Опції"
+    await bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=markup)
+
 
 async def send_orders_to_admin(client_id, message):
     sql = "SELECT description, price FROM client_order WHERE client_id = %s AND sent = FALSE"
@@ -104,22 +134,23 @@ async def send_orders_to_admin(client_id, message):
     sum_order += "\n*Вказаний час:* " + sql_result[0][1]
     sum_order += "\n*Вказаний телефон:* " + sql_result[0][2]
     sum_order += "\n*Вказане ім'я:* " + sql_result[0][3]
+    sum_order += "\n*Коли зроблено замовлення:* " + str(message.date)
     sql = "UPDATE client_data SET price = %s, order_desc = %s WHERE chat_id = %s"
 
     db_helper.do_sql(sql, [sum, sum_order, client_id])
     sql = "SELECT user_id FROM admin"
     admins = db_helper.do_sql(sql, [])
-    print("admin len" + str(len(admins)))
-    for row in admins:
-        print("admin:"+str(row[0]))
-        text = sum_order
-        await bot.send_message(row[0], text, parse_mode="Markdown")
 
-    print("updating client_order")
-    sql = "UPDATE client_order SET sent=TRUE WHERE client_id = %s AND sent = FALSE"
+
+    sql = "DELETE FROM client_order WHERE client_id = %s AND sent = FALSE"
     db_helper.do_sql(sql, [client_id])
-    print("updating 2")
+    sql = "INSERT INTO client_order (client_id, description, price, sent) VALUES(%s, %s, %s, TRUE)"
+    db_helper.do_sql(sql, [client_id, sum_order, price_format(sum)])
 
+    for row in admins:
+        text = sum_order
+        print(text)
+        await bot.send_message(row[0], "Нове замовлення:\n" + text, parse_mode="Markdown")
 
 async def show_categories(chat_id):
     sql = "SELECT category FROM item"
@@ -134,7 +165,6 @@ async def show_categories(chat_id):
             text=str(category), callback_data="show_items%"+category)
         markup.add(button)
     await bot.send_message(chat_id, "Обирайте 🧐", reply_markup=markup)
-
 
 async def show_items(chat_id, param):
     sql = "SELECT name, price FROM item WHERE category=%s ORDER BY price"
@@ -210,7 +240,7 @@ async def order_item_mass(chat_id, state, sql, param):
     text += str(mass) + " "+dims[category]+" x " + str(price) + " = "
     text += str(sum) + " ГРН + за декор окремо*"
 
-    sql = "INSERT INTO client_order VALUES(%s, %s, %s)"
+    sql = "INSERT INTO client_order (client_id, description, price) VALUES(%s, %s, %s)"
     db_helper.do_sql(sql, [chat_id, text, float(sum)])
     text += "\nЧудово! Ви замовите ще щось чи оформите те, що є?"
 
@@ -254,6 +284,18 @@ def price_format(price):
     price = price[0] + "." + price[1]
     return price
 
+async def save_admin(chat_id):
+    sql = "SELECT user_id FROM admin WHERE user_id = %s"
+    res = db_helper.do_sql(sql, [chat_id])
+    add_to_db = True
+    for r in res:
+        if r[0] == chat_id:
+            add_to_db = False
+            break
+    if add_to_db:
+        sql = "INSERT INTO admin (user_id) VALUES(%s)"
+        db_helper.do_sql(sql, [chat_id])
+    await admin_categories(chat_id)
 
 async def admin_categories(chat_id):
     sql_result = db_helper.do_sql("SELECT category FROM item")
@@ -274,11 +316,12 @@ async def admin_categories(chat_id):
             buttons_row.append(types.InlineKeyboardButton(
                 text=button[0], callback_data=button[1]))
         inline_keyboard.row(*buttons_row)
-    
+    inline_keyboard.row(*[types.InlineKeyboardButton(
+        text="Отримані замовлення", callback_data="admin_show_orders")])
     inline_keyboard.row(*[types.InlineKeyboardButton(
         text="Змінити інфо", callback_data="edit_info")])
     markup = inline_keyboard
-    text = "*Режим адміністратора*"
+    text = "*Режим адміністратора*\nЩоб відкрити режим клієнта, надішліть будь-який текст і натисніть Спробувати"
     await bot.send_message(chat_id, text, reply_markup=markup,  parse_mode="Markdown")
 
 
@@ -297,7 +340,7 @@ async def admin_show_category(chat_id, param):
     markup.row(*[types.InlineKeyboardButton(
         text="Новий виріб", callback_data="admin_add_item%"+category)])
     categories_button = types.InlineKeyboardButton(
-        'До категорій', callback_data="admin_show_categories")
+        'Назад', callback_data="admin_show_categories")
     markup.add(categories_button)
     await bot.send_message(chat_id, "Обирайте 🧐", reply_markup=markup, parse_mode="Markdown")
 
@@ -328,7 +371,7 @@ async def admin_show_item(chat_id, param):
     delete_button = types.InlineKeyboardButton(
         'Видалити виріб', callback_data="admin_delete_item"+'%' + param[0])
     categories_button = types.InlineKeyboardButton(
-        'До категорій', callback_data="admin_show_categories")
+        'Назад', callback_data="admin_show_categories")
     #markup.row(info_button, back_button)
     markup.row(name_button, desc_button)
     markup.row(price_button, photo_button)

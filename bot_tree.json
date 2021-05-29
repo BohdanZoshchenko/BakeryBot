@@ -17,7 +17,7 @@
 
             "CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, price integer NOT NULL DEFAULT '450', category varchar NULL)",
             
-            "CREATE TABLE IF NOT EXISTS client_order (client_id integer NOT NULL, description varchar NOT NULL, price float NOT NULL, sent boolean DEFAULT FALSE)"
+            "CREATE TABLE IF NOT EXISTS client_order (id SERIAL PRIMARY KEY, client_id integer NOT NULL, description varchar NOT NULL, price float NOT NULL, sent boolean DEFAULT FALSE)"
         ],
 
         "set_user_state" : "INSERT INTO client VALUES(%s,%s,%s,%s) ON CONFLICT (chat_id) DO UPDATE SET level = %s, funnel = %s, params = %s",
@@ -61,7 +61,7 @@
     {
         "start" : 
         {
-            "func" : "admin_categories"
+            "func" : "save_admin"
         }
     },
 
@@ -145,11 +145,19 @@
             "admin_show_categories":
             {
                 "func" : "admin_categories"
+            },
+            "admin_show_orders" :
+            {
+                "func" : "admin_orders"
             }
         },
         
         "composite_callbacks" :
         {
+            "show_orders_page" :
+            {
+                "func" : "admin_orders"
+            },
             "show_items" :
             {
                 "func" : "show_items"

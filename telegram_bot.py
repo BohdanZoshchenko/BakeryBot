@@ -90,7 +90,6 @@ async def handle_unknown_input(chat_id):
 @dp.message_handler(content_types=ContentType.ANY)
 async def handle_user_messages_and_simple_buttons(message: types.Message):
     chat_id = message.chat.id
-
     #await add_admin_button(chat_id)
 
     gotos: Dict = bot_tree["user"]["simple_gotos"]
@@ -198,10 +197,6 @@ async def execute_script(func_name, chat_id=None, sql=None, sql_result=None, par
         eval(script, globals(), locals())
 
 async def play_funnel_level(chat_id, state, msg=None):
-    if msg is types.Message and msg.text == admin_password:
-        set_user_state(chat_id, [None, None, None])
-        await handle_goto(chat_id, "start", bot_tree["admin"])
-        return
     if state is None or state == [None, None, None]:
         return False
     
@@ -407,20 +402,7 @@ async def main():
         # webserver settings
         WEBAPP_PORT = int(os.getenv('PORT'))
         WEBAPP_HOST = '0.0.0.0'
-        '''
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((WEBAPP_HOST, WEBAPP_PORT))
-            s.listen(8)
-            conn, addr = s.accept()
-            with conn:
-                print('Connected by', addr)
-                while True:
-                    data = conn.recv(1024)
-                    if not data:
-                        break
-                    if data.decode() == admin_password:
-                        conn.sendall(os.environ['HEROKU_POSTGRESQL_PUCE_URL'].encode())
-        '''
+
 
         logging.basicConfig(level=logging.INFO)
         
