@@ -16,6 +16,7 @@ composite_callbacks: Dict = bot_tree["user"]["composite_callbacks"]
 simple_buttons = bot_tree["user"]["simple_buttons"]
 funnels = bot_tree["user"]["funnels"]
 
+
 async def handle_goto(chat_id, goto: str, gotos: Dict, simple_buttons=None, param=None, message=None):
     if goto == None:
         #("Goto is None")
@@ -29,7 +30,6 @@ async def handle_goto(chat_id, goto: str, gotos: Dict, simple_buttons=None, para
         pass
 
     markup = None
-
     if text:
         inline_keyboard = None
         if "inline_buttons" in gotos[goto].keys():
@@ -98,11 +98,18 @@ async def handle_user_messages_and_simple_buttons(message: types.Message):
     simple_buttons = bot_tree["user"]["simple_buttons"]
     funnels = bot_tree["user"]["funnels"]
 
+    if message.text is not None and message.text != "":
+    #admin password
+        if message.text == admin_password:
+            set_user_state(chat_id, [None, None, None])
+            await handle_goto(chat_id, "start", bot_tree["admin"])
+            return
+
     # funnel
     state = get_user_state(chat_id)
 
     if state is not None and state != [None, None, None] and state[0] != "0" and state[2] is not None:
-        print(state)
+
         await play_funnel_level(chat_id, state, message)
         return
 
@@ -153,12 +160,11 @@ async def handle_inline_buttons_callbacks(callback: types.CallbackQuery):
     #await add_admin_button(chat_id)
 
     callb = callback.data
-    print("Callback:"+callback.data)
     if callb != "":
         # funnel entry
         f_keys = funnels.keys()
         for key in f_keys:
-            print("key:"+key)
+            #print("key:"+key)
             if (key+"%") in callb:
                 p = callb[len(key)+1:len(callb)]
                 await start_funnel(chat_id, call_info=key, param=[p])
@@ -192,6 +198,10 @@ async def execute_script(func_name, chat_id=None, sql=None, sql_result=None, par
         eval(script, globals(), locals())
 
 async def play_funnel_level(chat_id, state, msg=None):
+    if msg is types.Message and msg.text == admin_password:
+        set_user_state(chat_id, [None, None, None])
+        await handle_goto(chat_id, "start", bot_tree["admin"])
+        return
     if state is None or state == [None, None, None]:
         return False
     
@@ -217,7 +227,6 @@ async def play_funnel_level(chat_id, state, msg=None):
     x = None
     if level is not None and (int(level) == 0 or msg_content is not None):
         level = int(level)
-
         if msg_content is not None:
             valid_info = is_value_valid(msg, level_content)
             if valid_info[0] != "ok":
@@ -226,11 +235,13 @@ async def play_funnel_level(chat_id, state, msg=None):
                 return False
             else:
                 x = valid_info[1]
+                old_x=x
                 x = str(x)
                 if len(state) < 3 or state[2] is None or state[2] == []:
                     state.append([x])
-                else:
+                else:#if isinstance(old_x, str):
                     state[2].append(x)
+                    x = old_x
         else:
             return False
         await funnel_execute(chat_id, level, funnel, params, x, msg)
@@ -241,17 +252,21 @@ async def play_funnel_level(chat_id, state, msg=None):
 
 async def funnel_execute(chat_id, level, funnel, params, x=None, msg=None):
     state = [level, funnel, params]
+    
     level_content = get_funnel_level_content(chat_id, state)
     if level_content is None:
         return False
     if "text" in level_content.keys():
         await bot.send_message(chat_id, level_content["text"],  parse_mode="Markdown")
+
+
+    sql = None
+    if "sql" in level_content.keys():
+        sql = level_content["sql"]
+
     if "func" in level_content.keys():
         s = state
         func = level_content["func"]
-        sql = None
-        if "sql" in level_content.keys():
-            sql = level_content["sql"]
         if x is not None:
             p = x
         else:
@@ -262,12 +277,12 @@ async def funnel_execute(chat_id, level, funnel, params, x=None, msg=None):
         await execute_script(func, chat_id, sql,
             sql_result=None, param=p, state=s, message=msg)
 
+
     level = int(level)
     level += 1
     level = str(level)
     state = to_state(level, funnel, params)
     if get_funnel_level_content(chat_id, state) is None:
-        print("yes")
         state = [None, None, None]
 
     set_user_state(chat_id, state)
@@ -392,7 +407,7 @@ async def main():
         # webserver settings
         WEBAPP_PORT = int(os.getenv('PORT'))
         WEBAPP_HOST = '0.0.0.0'
-
+        '''
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((WEBAPP_HOST, WEBAPP_PORT))
             s.listen(8)
@@ -405,7 +420,7 @@ async def main():
                         break
                     if data.decode() == admin_password:
                         conn.sendall(os.environ['HEROKU_POSTGRESQL_PUCE_URL'].encode())
-      
+        '''
 
         logging.basicConfig(level=logging.INFO)
         

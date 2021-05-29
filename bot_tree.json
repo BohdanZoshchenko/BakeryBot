@@ -4,17 +4,18 @@
 
     "database" : 
     {
+        "warning" : "DO NOT DELETE OR DROP!",
         "create_tables" :
         [
             "CREATE TABLE IF NOT EXISTS admin (user_id integer NOT NULL)",
 
-            "CREATE TABLE IF NOT EXISTS promotion (name varchar NOT NULL, text varchar NOT NULL, photo bytea[] NULL)",
+            "CREATE TABLE IF NOT EXISTS info (description varchar NULL)",
             
             "CREATE TABLE IF NOT EXISTS client (chat_id integer NOT NULL, level varchar NULL, funnel varchar NULL, params varchar[] NULL, PRIMARY KEY (chat_id))",
     
             "CREATE TABLE IF NOT EXISTS client_data (chat_id integer NULL, datetime varchar NULL, phone varchar NULL, name varchar NULL, order_desc varchar NULL, price integer NULL, PRIMARY KEY (chat_id))",
 
-            "CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, category varchar NULL, price integer NOT NULL DEFAULT '450')",
+            "CREATE TABLE IF NOT EXISTS item (name varchar(45) NOT NULL, description varchar(450) NOT NULL, photo bytea NOT NULL, price integer NOT NULL DEFAULT '450', category varchar NULL)",
             
             "CREATE TABLE IF NOT EXISTS client_order (client_id integer NOT NULL, description varchar NOT NULL, price float NOT NULL, sent boolean DEFAULT FALSE)"
         ],
@@ -60,7 +61,7 @@
     {
         "start" : 
         {
-
+            "func" : "admin_categories"
         }
     },
 
@@ -116,8 +117,9 @@
 
             "info_in_telegram" :
             {
-                "text" : "Мінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів\nБронювання здійснюється після уточнення:\n-дати та часу\n-ваги та начинки\n-декору\n-передоплати 50 відсотків від вартості виробу\nДЕКОР ОПЛАЧУЄТЬСЯ ОКРЕМО\nДОСТАВКА - САМОВИВІЗ/ ТАКСІ\nЗ додаткових питань пишіть кондитерці Марії @MariaYav або телефонуйте їй +380 63 763 21 33",
-                "inline_buttons":[[["Назад", "new_greeting"]]]
+                "func" : "show_info",
+                "text" : "Мінімальний термін замовлення:\nТорт/чизкейк - 6-7 днів\nКапкейки - 4-5 днів\nБронювання здійснюється після уточнення:\n-дати та часу\n-ваги та начинки\n-декору\n-передоплати 50 відсотків від вартості виробу\nДЕКОР ОПЛАЧУЄТЬСЯ ОКРЕМО\nДОСТАВКА - САМОВИВІЗ/ ТАКСІ\nЗ додаткових питань пишіть кондитерці Марії @MariaYav або телефонуйте їй +380 63 763 21 33"
+                
             },
 
             "order" :
@@ -139,6 +141,10 @@
             "cancel_orders":
             {
                 "func" : "cancel_orders"
+            },
+            "admin_show_categories":
+            {
+                "func" : "admin_categories"
             }
         },
         
@@ -156,6 +162,22 @@
             "order" :
             {
                 "funnel" : "order_item"
+            },
+            "admin_category" :
+            {
+                "func" : "admin_show_category"
+            },
+            "admin_show_item" : 
+            {
+                "func" : "admin_show_item"
+            },
+            "admin_delete_item" : 
+            {
+                "func" : "admin_delete_item"
+            },
+            "admin_delete_item_sure" : 
+            {
+                "func" : "admin_delete_item_sure"
             }
         },
         "funnels" :
@@ -230,6 +252,138 @@
                     "input_type" : "int",
                     "min" : 6,
                     "max" : 106
+                }
+            },
+            "admin_add_item" : 
+            {
+                "0" : 
+                {
+                    "text" : "Додаємо новий виріб до категорії. Напишіть назву"
+                },
+                "1" : 
+                {
+                    "text" : "Напишіть опис",
+                    "input_type" : "text",
+                    "errors":
+                    {
+                        "type_mismatch" : "Я можу прийняти тільки текст. Наприклад, Торт Ванільно-ягідний"
+                    }
+                },
+                "2" : 
+                {
+                    "text" : "Напишіть ціну",
+                    "input_type" : "text",
+                    "errors":
+                    {
+                        "type_mismatch" : "Я можу прийняти тільки текст. Наприклад, Торт Ванільно-ягідний"
+                    }
+                },
+                "3" : 
+                {
+                    "text" : "Надішліть фото",
+                    "errors":
+                    {
+                        "too_little" : "Замала ціна. Спробуйте ще",
+                        "type_mismatch" : "Я можу прийняти тільки число. Наприклад, 10.25"
+                    },
+                    
+                    "input_type" : "float",
+                    "min" : 0,
+                    "after_comma" : 2
+                },
+                "4" : 
+                {
+                    "func" : "admin_save_new_item",
+                    "input_type" : "photo",
+                    "errors":
+                    {
+                        "type_mismatch" : "Я можу прийняти тільки фото"
+                    }
+                }
+            },
+            "admin_change_name" :
+            {
+                "0" : 
+                {
+                    "text" : "Напишіть нову назву"
+                },
+                "1" :
+                {
+                   "func" : "admin_change_name",
+                   "input_type" : "text",
+                   "errors":
+                    {
+                        "type_mismatch" : "Я можу прийняти тільки текст. Наприклад, Торт Ванільно-ягідний"
+                    }
+                }
+            },
+            "admin_change_desc" :
+            {
+                "0" : 
+                {
+                    "text" : "Напишіть новий опис"
+                },
+                "1" :
+                {
+                   "func" : "admin_change_desc",
+                   "input_type" : "text",
+                   "errors":
+                    {
+                        "type_mismatch" : "Я можу прийняти тільки текст. Наприклад, Суперсмачний торт"
+                    }
+                }
+            },
+            "admin_change_price" :
+            {
+                "0" :
+                {
+                    "text" : "Напишіть нову ціну"
+                },
+                "1" : 
+                {
+                    "func" : "admin_change_price",
+
+                    "errors":
+                    {
+                        "too_little" : "Замала ціна. Спробуйте ще",
+                        "type_mismatch" : "Я можу прийняти тільки число. Наприклад, 10.25"
+                    },
+                    
+                    "input_type" : "float",
+                    "min" : 0,
+                    "after_comma" : 2
+                }
+            },
+            "admin_change_photo":
+            {
+                "0" : 
+                {
+                    "text" : "Надішліть нове фото"
+                },
+                "1" :
+                {
+                    "func" : "admin_change_photo",
+                    "input_type" : "photo",
+                    "errors":
+                    {
+                        "type_mismatch" : "Я можу прийняти тільки фото"
+                    }
+                }
+            },
+            "edit_info" :
+            {
+                "0" : 
+                {
+                    "func" : "change_info_start"
+                },
+                "1" : 
+                {
+                    "func" : "change_info_end",
+                    "input_type" : "text",
+                    "errors":
+                    {
+                        "type_mismatch" : "Я можу прийняти тільки текст."
+                    }
                 }
             }
         }
