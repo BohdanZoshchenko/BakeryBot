@@ -22,4 +22,4 @@ aiogram
 asyncio
 nest_asyncio
 emoji
-math
+python-math
