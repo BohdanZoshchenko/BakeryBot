@@ -305,9 +305,12 @@ async def admin_categories(chat_id):
         if c[0] is not None and c[0] not in categories:
             categories.append(c[0])
             inline_buttons.append([[c[0], 'admin_category%'+c[0]]])
-    if len(inline_buttons) == 0:
-        inline_buttons.append([["Торти", 'admin_category%'+"Торти"]])
-        inline_buttons.append([["Капкейки", 'admin_category%'+"Капкейки"]])
+
+    add_categories = ["Торти", "Капкейки"]
+    
+    for a in add_categories:
+        if a is not None and a not in categories:
+            inline_buttons.append([[a, 'admin_category%'+a]])
     inline_keyboard = types.InlineKeyboardMarkup()
     rows = inline_buttons
     for row in rows:
