@@ -380,7 +380,6 @@ async def admin_show_item(chat_id, param):
     markup.row(price_button, photo_button)
     markup.row(delete_button)
     markup.row(categories_button)
-    print(item)
     await bot.send_photo(chat_id, item[2], caption=text, parse_mode="Markdown", reply_markup=markup)
 
 async def admin_change_name(chat_id, param, state):

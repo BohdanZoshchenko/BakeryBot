@@ -76,7 +76,7 @@ async def handle_goto(chat_id, goto: str, gotos: Dict, simple_buttons=None, para
 
     # If there was a script, this message will not be sent
     if text:
-        await bot.send_message(chat_id, text, reply_markup=markup,  parse_mode="Markdown")
+        await bot.send_message(chat_id, text, reply_markup=markup)
 
 
 async def start_funnel(chat_id, call_info=None, msg=None, param=None):
@@ -86,6 +86,7 @@ async def start_funnel(chat_id, call_info=None, msg=None, param=None):
 
 async def handle_unknown_input(chat_id):
     await handle_goto(chat_id, "unknown_input", gotos=bot_tree["user"])
+  
 
 @dp.message_handler(content_types=ContentType.ANY)
 async def handle_user_messages_and_simple_buttons(message: types.Message):
@@ -117,13 +118,14 @@ async def handle_user_messages_and_simple_buttons(message: types.Message):
         if message.text[0] == "/":
             if len(message.text) > 1:
                 command = message.text[1:]
+                print(command)
                 if command in commands.keys():
                     goto = None
                     if "goto" in commands[command].keys():
                         goto = commands[command]["goto"]
                         if goto in gotos.keys():
                             m = message
-                            await handle_goto(chat_id, goto, gotos,
+                            await handle_goto(chat_id, goto, bot_tree["user"]["simple_gotos"],
                                         simple_buttons, message=m)
                         else:
                             await handle_unknown_input(chat_id)
