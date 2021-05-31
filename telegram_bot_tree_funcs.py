@@ -1,7 +1,10 @@
 # this module is NOT UNIVERSAL for different bots
 from modules import *
 from settings import *
-import math
+from datetime import datetime
+import pytz
+from pytz import timezone
+
 
 def set_user_state(chat_id, state):
     if state == None:
@@ -117,7 +120,7 @@ async def admin_orders(chat_id, param, page_n = 1, page_size = 5):
     await bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=markup)
 
 
-async def send_orders_to_admin(client_id, message):
+async def send_orders_to_admin(client_id, message:types.Message):
     sql = "SELECT description, price FROM client_order WHERE client_id = %s AND sent = FALSE"
     orders = db_helper.do_sql(sql, [client_id])
     sum_order = ""
@@ -134,7 +137,12 @@ async def send_orders_to_admin(client_id, message):
     sum_order += "\n*Вказаний час:* " + sql_result[0][1]
     sum_order += "\n*Вказаний телефон:* " + sql_result[0][2]
     sum_order += "\n*Вказане ім'я:* " + sql_result[0][3]
-    sum_order += "\n*Коли зроблено замовлення:* " + str(message.date)
+
+    time = message.date
+    time.tzinfo=pytz.utc
+    tz = "Europe/Kiev"
+    local_time=time.astimezone(tz)
+    sum_order += "\n*Коли зроблено замовлення:* " + str(local_time)
     sql = "UPDATE client_data SET price = %s, order_desc = %s WHERE chat_id = %s"
 
     db_helper.do_sql(sql, [sum, sum_order, client_id])
