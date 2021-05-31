@@ -2,8 +2,8 @@
 from modules import *
 from settings import *
 from datetime import datetime
-import pytz
 from pytz import timezone
+from dateutil import tz
 
 
 def set_user_state(chat_id, state):
@@ -140,8 +140,8 @@ async def send_orders_to_admin(client_id, message:types.Message):
 
     time = message.date
     
-    tz = "Europe/Kiev"
-    local_time=time.astimezone(tz)
+    timezone = tz.gettz("Europe/Kiev")
+    local_time=time.astimezone(timezone)
     sum_order += "\n*Коли зроблено замовлення:* " + str(local_time)
     sql = "UPDATE client_data SET price = %s, order_desc = %s WHERE chat_id = %s"
 
