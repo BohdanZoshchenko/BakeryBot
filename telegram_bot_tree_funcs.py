@@ -92,7 +92,7 @@ async def admin_orders(chat_id, param, page_n = 1, page_size = 5):
     
     sql = "SELECT description, price FROM client_order WHERE sent = TRUE ORDER BY ID DESC LIMIT %s OFFSET %s"
     count = page_size
-    start = (page_n-1) * page_size +1
+    start = (page_n-1) * page_size
     orders = db_helper.do_sql(sql,[count, start])
     for o in orders:
         text = o[0]
@@ -104,7 +104,7 @@ async def admin_orders(chat_id, param, page_n = 1, page_size = 5):
             text="До старіших", callback_data="show_orders_page%" + str(page_n+1))
     btns = []
 
-    sql = "SELECT ID FROM client_order ORDER BY ID DESC LIMIT ALL OFFSET 1"
+    sql = "SELECT ID FROM client_order ORDER BY ID DESC"
     pages_count = len(db_helper.do_sql(sql))/page_size
     if page_n > 1:
         btns.append(btn1)
