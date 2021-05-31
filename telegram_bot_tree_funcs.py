@@ -139,7 +139,7 @@ async def send_orders_to_admin(client_id, message:types.Message):
     sum_order += "\n*Вказане ім'я:* " + sql_result[0][3]
 
     time = message.date
-    time.tzinfo=pytz.utc
+    
     tz = "Europe/Kiev"
     local_time=time.astimezone(tz)
     sum_order += "\n*Коли зроблено замовлення:* " + str(local_time)
